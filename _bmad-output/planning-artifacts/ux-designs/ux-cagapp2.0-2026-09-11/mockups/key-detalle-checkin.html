@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CagApp — Detalle + Check-in/Calificar</title>
+<style>
+  /* ============================================================
+     CAGAPP 2.0 — MOCK: DETALLE DE BAÑO + CHECK-IN / CALIFICAR
+     Muestra DOS estados del mismo flujo, uno junto al otro:
+       ESTADO A — Detalle de baño, check-in habilitado (en rango).
+       ESTADO B — Post check-in exitoso, seleccionando calificación.
+
+     Gobernado por:
+     - PRD §4.2 FR-6: detalle muestra nombre, tipo de lugar,
+       calificación promedio; ubicación implícita en distancia.
+     - PRD §4.4 FR-9: check-in solo se habilita dentro de 150 m de
+       la ubicación registrada del baño. Estado A representa "en
+       rango" (estado habilitado); fuera de rango deshabilitaría el
+       botón (no mostrado aquí, es el caso feliz de UJ-1/UJ-2).
+     - PRD §4.4 FR-10: solo se puede calificar 1-5 estrellas
+       INMEDIATAMENTE después de un check-in exitoso — de ahí que
+       el selector de estrellas (Estado B) solo aparece tras el
+       check-in, nunca antes.
+     - PRD Glosario "Calificación": 1 = "un desastre", 5 = "limpio,
+       amplio y hasta huele bien" (copy exacta del PRD). 2-4 son
+       copy chusca inferida, consistente con el tono de marca.
+     - PRD §5 No-Objetivos: solo estrella, sin comentarios de texto
+       ni fotos en v1 — por eso el selector no incluye esos campos.
+     - .memlog.md: tono "chusco", emojis en momentos clave (aquí:
+       confirmación de check-in y selección de estrellas).
+     Paleta EXACTA (theme-naranja de color-themes-1.html, ajustada
+     tras revisión de accesibilidad WCAG AA — ver notas de contraste):
+       bg:#FFFFFF surface:#FFF8F3 primary:#D53C19 primary-ink:#FFFFFF
+       text:#2B1B12 muted:#8A6A5A success:#1F7A45 warning:#CB3E48
+       border:#F2D9CC
+     Nota de accesibilidad (revisión QA):
+     - primary #FF5A36 → #D53C19 (mismo tono, más oscuro; ~4.68:1
+       contra blanco).
+     - success #2E9E5B → #1F7A45 (~4.71:1 contra success-surface
+       #E6F4EB).
+     - warning #D64550 → #CB3E48 (~4.86:1 contra blanco).
+     - Botón "Volver" con aria-label="Volver" y tamaño aumentado de
+       32×32px a 42×42px (mismo tamaño que el ícono de perfil).
+     - Selector de estrellas: mock estático; ver comentario junto a
+       .star-picker en el HTML sobre el patrón de accesibilidad
+       (role="img" + aria-label="Calificar N de 5") a implementar
+       cuando el selector sea interactivo en el build real.
+     Nota de producto (confirmada, sin cambios): la lista "Lo que
+     dice la gente" (Estado A) muestra nombre y calificación de otros
+     usuarios de forma pública — revisado y confirmado como
+     intencional para v1, se deja tal cual.
+     ============================================================ */
+
+  :root{
+    --bg:#FFFFFF; --surface:#FFF8F3; --primary:#D53C19; --primary-ink:#FFFFFF;
+    --text:#2B1B12; --muted:#8A6A5A; --success:#1F7A45; --warning:#CB3E48; --border:#F2D9CC;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:#EDEDED;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding:24px 16px 48px;
+  }
+
+  h2.section-title{
+    max-width:1200px;
+    margin:0 auto 4px;
+    font-size:16px;
+    color:#333;
+    text-align:center;
+  }
+  p.caption{
+    max-width:1200px;
+    margin:0 auto 20px;
+    font-size:12.5px;
+    color:#555;
+    text-align:center;
+  }
+
+  .row{
+    max-width:1200px;
+    margin:0 auto;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:28px;
+  }
+
+  .col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    max-width:375px;
+  }
+  .state-label{
+    display:inline-block;
+    background:var(--text);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.03em;
+    padding:4px 12px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+
+  .device{
+    width:100%;
+    background:#151515;
+    border-radius:42px;
+    padding:12px;
+    box-shadow:0 24px 50px rgba(0,0,0,.28);
+  }
+  .screen{
+    background:var(--bg);
+    border-radius:30px;
+    overflow:hidden;
+    min-height:700px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  .statusbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 20px 4px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .statusbar .icons{ letter-spacing:2px; }
+
+  .nav{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 18px 4px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text);
+  }
+  .nav .back{
+    width:42px; height:42px;
+    border-radius:50%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+
+  .content{
+    flex:1;
+    padding:8px 20px 24px;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+
+  .hero{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-top:6px;
+  }
+  .hero-top{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .icon-circle{
+    width:48px; height:48px;
+    border-radius:50%;
+    background:var(--primary);
+    color:var(--primary-ink);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+    flex:none;
+  }
+  .b-name{ margin:0; font-size:16.5px; font-weight:800; color:var(--text); }
+  .b-sub{ margin:3px 0 0; font-size:12.5px; color:var(--muted); }
+
+  .rating-row{
+    display:flex; align-items:center; gap:8px;
+    margin:14px 0 8px;
+    flex-wrap:wrap;
+  }
+  .stars-static{ color:var(--primary); font-size:17px; letter-spacing:2px; }
+  .score-tag{
+    font-size:12px; font-weight:800;
+    padding:3px 9px; border-radius:999px;
+    background:#E6F4EB; color:var(--success);
+  }
+
+  .distance-row{
+    display:flex; align-items:center; gap:6px;
+    font-size:13px; color:var(--muted);
+    margin-bottom:14px;
+  }
+
+  .range-ok{
+    display:flex; align-items:center; gap:7px;
+    background:#E6F4EB;
+    border:1px solid #BFE6CC;
+    color:var(--success);
+    font-size:12.5px;
+    font-weight:700;
+    padding:9px 12px;
+    border-radius:10px;
+    margin-bottom:16px;
+  }
+
+  .btn-primary{
+    display:block; width:100%; text-align:center;
+    background:var(--primary); color:var(--primary-ink);
+    border:none; border-radius:12px;
+    padding:14px 12px; font-size:15px; font-weight:800;
+  }
+
+  .helper{
+    text-align:center;
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:10px;
+  }
+
+  .section-mini{
+    margin-top:22px;
+  }
+  .section-mini h4{
+    margin:0 0 8px;
+    font-size:12.5px;
+    color:var(--text);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .mini-row{
+    display:flex; justify-content:space-between;
+    font-size:12.5px; color:var(--muted);
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+  }
+
+  /* ---------- Estado B: check-in + calificar ---------- */
+  .checkin-banner{
+    display:flex; align-items:center; gap:10px;
+    background:#E6F4EB;
+    border:1px solid #BFE6CC;
+    border-radius:12px;
+    padding:12px 14px;
+    margin-top:6px;
+  }
+  .checkin-banner .emoji{ font-size:22px; }
+  .checkin-banner strong{ display:block; font-size:13.5px; color:var(--text); }
+  .checkin-banner span{ font-size:11.5px; color:var(--muted); }
+
+  .rate-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:20px 16px;
+    margin-top:16px;
+    text-align:center;
+  }
+  .rate-card h3{
+    margin:0 0 4px;
+    font-size:15px;
+    color:var(--text);
+  }
+  .rate-card p.sub{
+    margin:0 0 16px;
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .star-picker{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    font-size:34px;
+    margin-bottom:10px;
+  }
+  .star-picker .on{ color:var(--primary); }
+  .star-picker .off{ color:#E8D9CE; }
+
+  .rate-caption{
+    display:inline-block;
+    background:var(--primary);
+    color:var(--primary-ink);
+    font-size:13px;
+    font-weight:800;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+  }
+
+  .scale-list{
+    text-align:left;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:18px;
+  }
+  .scale-list .item{
+    display:flex; justify-content:space-between;
+    font-size:11.5px;
+    color:var(--muted);
+    padding:5px 0;
+  }
+  .scale-list .item.selected{
+    color:var(--text);
+    font-weight:800;
+  }
+  .scale-list .item.selected span:first-child{ color:var(--primary); }
+
+  .btn-confirm{
+    display:block; width:100%; text-align:center;
+    background:var(--primary); color:var(--primary-ink);
+    border:none; border-radius:12px;
+    padding:14px 12px; font-size:15px; font-weight:800;
+  }
+
+  .no-frills{
+    text-align:center;
+    font-size:10.5px;
+    color:var(--muted);
+    margin-top:12px;
+  }
+</style>
+</head>
+<body>
+
+  <h2 class="section-title">🖼️ Mock 3/3 — Detalle de Baño → Check-in → Calificar</h2>
+  <p class="caption">Estado A: detalle con check-in habilitado (usuario dentro de 150 m) · Estado B: tras check-in exitoso, seleccionando calificación</p>
+
+  <div class="row">
+
+    <!-- ================= ESTADO A: DETALLE, CHECK-IN HABILITADO ================= -->
+    <div class="col">
+      <span class="state-label">ESTADO A — Detalle · Check-in habilitado</span>
+      <div class="device">
+        <div class="screen">
+
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="icons">••• 📶 🔋</span>
+          </div>
+
+          <div class="nav">
+            <div class="back" role="button" aria-label="Volver">←</div>
+            <span>Detalle del baño</span>
+          </div>
+
+          <div class="content">
+            <div class="hero">
+              <div class="hero-top">
+                <div class="icon-circle">🚽</div>
+                <div>
+                  <p class="b-name">El Rincón — Café Toldo</p>
+                  <p class="b-sub">Cafetería · Baño mixto · Condesa</p>
+                </div>
+              </div>
+
+              <div class="rating-row">
+                <span class="stars-static">★★★★☆</span>
+                <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+              </div>
+
+              <div class="distance-row">📍 320 m de ti — como 4 min caminando, ya casi llegas</div>
+
+              <div class="range-ok">✅ Estás a tiro de piedra — dentro del rango para check-in</div>
+
+              <button class="btn-primary">🚽 Hacer check-in aquí</button>
+              <p class="helper">Cuando hagas check-in, podrás calificar tu experiencia</p>
+            </div>
+
+            <!-- Nota de producto (confirmada): esta lista muestra nombre y
+                 calificación de otros usuarios de forma pública. Revisado y
+                 aprobado por el dueño de producto como intencional para v1;
+                 no modificar sin nueva decisión de producto. -->
+            <div class="section-mini">
+              <h4>Lo que dice la gente</h4>
+              <div class="mini-row"><span>Ana R.</span><span>★★★★★ hace 2 días</span></div>
+              <div class="mini-row"><span>Mario T.</span><span>★★★★☆ hace 1 semana</span></div>
+              <div class="mini-row"><span>Karla V.</span><span>★★★★★ hace 2 semanas</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ESTADO B: POST CHECK-IN, CALIFICANDO ================= -->
+    <div class="col">
+      <span class="state-label">ESTADO B — Check-in listo · Calificando</span>
+      <div class="device">
+        <div class="screen">
+
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="icons">••• 📶 🔋</span>
+          </div>
+
+          <div class="nav">
+            <div class="back" role="button" aria-label="Volver">←</div>
+            <span>Detalle del baño</span>
+          </div>
+
+          <div class="content">
+            <div class="checkin-banner">
+              <span class="emoji">✅</span>
+              <div>
+                <strong>¡Check-in registrado!</strong>
+                <span>Quedó constancia de que sí estuviste aquí 🕵️</span>
+              </div>
+            </div>
+
+            <div class="rate-card">
+              <h3>El Rincón — Café Toldo</h3>
+              <p class="sub">¿Cómo estuvo el baño? Sé honesto, aquí nadie te juzga 👀</p>
+
+              <!-- Accesibilidad (implementar en build real, no aplica a
+                   este mock estático): cada estrella del selector debe
+                   llevar role="img" y aria-label="Calificar N de 5" (N =
+                   1..5), y el control seleccionado actual debe exponer su
+                   valor vía aria-checked o un texto equivalente accesible
+                   (p. ej. un radiogroup de 5 opciones en lugar de <span>
+                   sueltos). Aquí se deja como referencia de patrón. -->
+              <div class="star-picker">
+                <span class="on">★</span>
+                <span class="on">★</span>
+                <span class="on">★</span>
+                <span class="on">★</span>
+                <span class="off">★</span>
+              </div>
+
+              <span class="rate-caption">🙂 4 — Bien limpio, sin drama</span>
+
+              <div class="scale-list">
+                <div class="item"><span>1 ★</span><span>💩 Un desastre</span></div>
+                <div class="item"><span>2 ★</span><span>😬 Sobrevivible, de panza</span></div>
+                <div class="item"><span>3 ★</span><span>😐 Normalito, ni fu ni fa</span></div>
+                <div class="item selected"><span>4 ★</span><span>🙂 Bien limpio, sin drama</span></div>
+                <div class="item"><span>5 ★</span><span>🤩 Limpio, amplio y hasta huele bien</span></div>
+              </div>
+
+              <button class="btn-confirm">Confirmar calificación 🚀</button>
+              <p class="no-frills">Solo la estrella cuenta — sin fotos ni comentarios (por ahora 👀)</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

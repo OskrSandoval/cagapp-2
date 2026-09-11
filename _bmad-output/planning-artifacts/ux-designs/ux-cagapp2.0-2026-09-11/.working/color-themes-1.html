@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿Qué colores le damos a CagApp? — Comparador de paletas</title>
+<style>
+  /* ============================================================
+     CAGAPP 2.0 — COMPARADOR DE PALETAS DE COLOR
+     Todas las variantes parten de fondo blanco/claro (pedido del
+     usuario). Lo que cambia es el "acento" (primary) y su registro
+     emocional. Cada bloque de tema documenta sus hex exactos abajo
+     para poder copiarlos directo a Figma / CSS más adelante.
+     ============================================================ */
+
+  /* ---------- THEME 1: Naranja Foursquare ----------
+     background: #FFFFFF
+     surface:    #FFF8F3
+     primary:    #FF5A36
+     text:       #2B1B12
+     success:    #2E9E5B
+     warning:    #D64550
+     border:     #F2D9CC
+  ----------------------------------------------------- */
+  .theme-naranja{
+    --bg:#FFFFFF; --surface:#FFF8F3; --primary:#FF5A36; --primary-ink:#FFFFFF;
+    --text:#2B1B12; --muted:#8A6A5A; --success:#2E9E5B; --warning:#D64550; --border:#F2D9CC;
+  }
+
+  /* ---------- THEME 2: Coral Chusco ----------
+     background: #FFFFFF
+     surface:    #FFF5F7
+     primary:    #FF6F91
+     text:       #3A2531
+     success:    #2EC4B6
+     warning:    #E63950
+     border:     #FFD6E0
+  --------------------------------------------- */
+  .theme-coral{
+    --bg:#FFFFFF; --surface:#FFF5F7; --primary:#FF6F91; --primary-ink:#3A0E1E;
+    --text:#3A2531; --muted:#9C7686; --success:#2EC4B6; --warning:#E63950; --border:#FFD6E0;
+  }
+
+  /* ---------- THEME 3: Menta Fresca ----------
+     background: #FFFFFF
+     surface:    #F2FBF9
+     primary:    #14B8A6
+     text:       #113330
+     success:    #22C55E
+     warning:    #F59E0B
+     border:     #C9EFE9
+  --------------------------------------------- */
+  .theme-menta{
+    --bg:#FFFFFF; --surface:#F2FBF9; --primary:#14B8A6; --primary-ink:#FFFFFF;
+    --text:#113330; --muted:#5C8B85; --success:#22C55E; --warning:#F59E0B; --border:#C9EFE9;
+  }
+
+  /* ---------- THEME 4: Amarillo Alegre ----------
+     background: #FFFFFF
+     surface:    #FFFBEB
+     primary:    #F2A93C
+     text:       #3D2F05
+     success:    #4CAF50
+     warning:    #E4572E
+     border:     #FCE8A8
+  ----------------------------------------------- */
+  .theme-amarillo{
+    --bg:#FFFFFF; --surface:#FFFBEB; --primary:#F2A93C; --primary-ink:#3D2705;
+    --text:#3D2F05; --muted:#93803F; --success:#4CAF50; --warning:#E4572E; --border:#FCE8A8;
+  }
+
+  /* ---------- THEME 5: Lavanda Pop ----------
+     background: #FFFFFF
+     surface:    #F7F5FF
+     primary:    #8B5CF6
+     text:       #2C2140
+     success:    #22C55E
+     warning:    #F97316
+     border:     #E4DBFF
+  -------------------------------------------- */
+  .theme-lavanda{
+    --bg:#FFFFFF; --surface:#F7F5FF; --primary:#8B5CF6; --primary-ink:#FFFFFF;
+    --text:#2C2140; --muted:#8377A3; --success:#22C55E; --warning:#F97316; --border:#E4DBFF;
+  }
+
+  /* ---------- THEME 6 (OPCIONAL, MODO OSCURO): Noche Chusca ----------
+     background: #121212
+     surface:    #1E1E1E
+     primary:    #FF7A50
+     text:       #F5F5F5
+     success:    #4ADE80
+     warning:    #FBBF24
+     border:     #333333
+     NOTA: esta es la única variante oscura del set. Todas las demás
+     usan fondo blanco/claro tal como se pidió.
+  --------------------------------------------------------------------- */
+  .theme-noche{
+    --bg:#121212; --surface:#1E1E1E; --primary:#FF7A50; --primary-ink:#1A0D06;
+    --text:#F5F5F5; --muted:#B3ABA6; --success:#4ADE80; --warning:#FBBF24; --border:#333333;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:#F4F5F7;
+    color:#1A1A1A;
+    padding:0 16px 48px;
+  }
+  .page-head{
+    max-width:1200px;
+    margin:0 auto;
+    padding:32px 0 8px;
+  }
+  .page-head h1{
+    font-size:clamp(22px, 4vw, 30px);
+    margin:0 0 6px;
+  }
+  .page-head p{
+    margin:0;
+    color:#555;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .grid{
+    max-width:1200px;
+    margin:24px auto 0;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+    gap:20px;
+  }
+
+  .theme-card{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);
+    color:var(--text);
+  }
+  .theme-card h2{
+    margin:0 0 2px;
+    font-size:18px;
+  }
+  .theme-card .register{
+    margin:0 0 16px;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.4;
+  }
+  .badge-dark{
+    display:inline-block;
+    background:var(--primary);
+    color:var(--primary-ink);
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:999px;
+    margin-bottom:8px;
+  }
+
+  /* --- token chips --- */
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:18px;
+  }
+  .chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:4px 10px 4px 4px;
+    font-size:11px;
+    color:var(--text);
+  }
+  .swatch{
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    border:1px solid rgba(0,0,0,0.15);
+    flex:none;
+  }
+  .chip small{
+    display:block;
+    color:var(--muted);
+    font-size:9.5px;
+    font-family:"SFMono-Regular", Consolas, Menlo, monospace;
+  }
+
+  /* --- UI snippet: bathroom detail card mock --- */
+  .phone-mock{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+  }
+  .bathroom-card{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+  }
+  .bathroom-top{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .icon-circle{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:var(--primary);
+    color:var(--primary-ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    flex:none;
+  }
+  .bathroom-name{
+    margin:0;
+    font-size:15px;
+    font-weight:700;
+    color:var(--text);
+  }
+  .bathroom-sub{
+    margin:2px 0 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .rating-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:12px 0 6px;
+    flex-wrap:wrap;
+  }
+  .stars{
+    color:var(--primary);
+    font-size:15px;
+    letter-spacing:1px;
+  }
+  .score-tag{
+    font-size:12px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:999px;
+    background:color-mix(in srgb, var(--success) 18%, var(--bg));
+    color:var(--success);
+  }
+  .distance-row{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:12px;
+  }
+  .cta-btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:var(--primary);
+    color:var(--primary-ink);
+    border:none;
+    border-radius:10px;
+    padding:11px 12px;
+    font-size:14px;
+    font-weight:700;
+    cursor:default;
+  }
+  .compare-row{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .compare-pill{
+    flex:1;
+    font-size:11px;
+    text-align:center;
+    padding:6px 4px;
+    border-radius:8px;
+    font-weight:700;
+  }
+  .compare-pill.good{
+    background:color-mix(in srgb, var(--success) 16%, var(--bg));
+    color:var(--success);
+  }
+  .compare-pill.bad{
+    background:color-mix(in srgb, var(--warning) 16%, var(--bg));
+    color:var(--warning);
+  }
+
+  @media (max-width:420px){
+    .grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <h1>¿Qué colores le damos a CagApp? 🚽🎨</h1>
+    <p>Seis paletas para elegir la personalidad visual de la app. Todas parten de fondo blanco/claro
+    (menos la de modo oscuro, marcada aparte). Lo que cambia entre ellas es el color de acento y qué tan
+    "chusco" se siente. Cada tarjeta muestra sus colores y un ejemplo real: la ficha de un baño con
+    calificación, distancia y botón de check-in.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ 1. NARANJA FOURSQUARE ============ -->
+    <section class="theme-card theme-naranja">
+      <h2>Naranja Foursquare 🧡</h2>
+      <p class="register">Cálido, con confianza y un guiño directo al ADN de Foursquare/Swarm. Se siente enérgico sin gritar.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#FFFFFF"></span>bg<small>#FFFFFF</small></div>
+        <div class="chip"><span class="swatch" style="background:#FFF8F3"></span>surface<small>#FFF8F3</small></div>
+        <div class="chip"><span class="swatch" style="background:#FF5A36"></span>primary<small>#FF5A36</small></div>
+        <div class="chip"><span class="swatch" style="background:#2B1B12"></span>text<small>#2B1B12</small></div>
+        <div class="chip"><span class="swatch" style="background:#2E9E5B"></span>success<small>#2E9E5B</small></div>
+        <div class="chip"><span class="swatch" style="background:#D64550"></span>warning<small>#D64550</small></div>
+        <div class="chip"><span class="swatch" style="background:#F2D9CC"></span>border<small>#F2D9CC</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. CORAL CHUSCO ============ -->
+    <section class="theme-card theme-coral">
+      <h2>Coral Chusco 💗</h2>
+      <p class="register">Juguetón y descarado, casi de sticker pack. El más "no nos tomamos en serio" de todos.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#FFFFFF"></span>bg<small>#FFFFFF</small></div>
+        <div class="chip"><span class="swatch" style="background:#FFF5F7"></span>surface<small>#FFF5F7</small></div>
+        <div class="chip"><span class="swatch" style="background:#FF6F91"></span>primary<small>#FF6F91</small></div>
+        <div class="chip"><span class="swatch" style="background:#3A2531"></span>text<small>#3A2531</small></div>
+        <div class="chip"><span class="swatch" style="background:#2EC4B6"></span>success<small>#2EC4B6</small></div>
+        <div class="chip"><span class="swatch" style="background:#E63950"></span>warning<small>#E63950</small></div>
+        <div class="chip"><span class="swatch" style="background:#FFD6E0"></span>border<small>#FFD6E0</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. MENTA FRESCA ============ -->
+    <section class="theme-card theme-menta">
+      <h2>Menta Fresca 🌿</h2>
+      <p class="register">Limpio y confiable — el acento verde-azulado habla directo del alivio de encontrar un baño impecable.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#FFFFFF"></span>bg<small>#FFFFFF</small></div>
+        <div class="chip"><span class="swatch" style="background:#F2FBF9"></span>surface<small>#F2FBF9</small></div>
+        <div class="chip"><span class="swatch" style="background:#14B8A6"></span>primary<small>#14B8A6</small></div>
+        <div class="chip"><span class="swatch" style="background:#113330"></span>text<small>#113330</small></div>
+        <div class="chip"><span class="swatch" style="background:#22C55E"></span>success<small>#22C55E</small></div>
+        <div class="chip"><span class="swatch" style="background:#F59E0B"></span>warning<small>#F59E0B</small></div>
+        <div class="chip"><span class="swatch" style="background:#C9EFE9"></span>border<small>#C9EFE9</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. AMARILLO ALEGRE ============ -->
+    <section class="theme-card theme-amarillo">
+      <h2>Amarillo Alegre ☀️</h2>
+      <p class="register">Soleado y de buen humor, como un post-it feliz. Cálido sin ser tan intenso como el naranja.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#FFFFFF"></span>bg<small>#FFFFFF</small></div>
+        <div class="chip"><span class="swatch" style="background:#FFFBEB"></span>surface<small>#FFFBEB</small></div>
+        <div class="chip"><span class="swatch" style="background:#F2A93C"></span>primary<small>#F2A93C</small></div>
+        <div class="chip"><span class="swatch" style="background:#3D2F05"></span>text<small>#3D2F05</small></div>
+        <div class="chip"><span class="swatch" style="background:#4CAF50"></span>success<small>#4CAF50</small></div>
+        <div class="chip"><span class="swatch" style="background:#E4572E"></span>warning<small>#E4572E</small></div>
+        <div class="chip"><span class="swatch" style="background:#FCE8A8"></span>border<small>#FCE8A8</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 5. LAVANDA POP ============ -->
+    <section class="theme-card theme-lavanda">
+      <h2>Lavanda Pop 💜</h2>
+      <p class="register">Inesperado para una app de baños — por eso mismo se siente fresco, moderno y con personalidad propia.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#FFFFFF"></span>bg<small>#FFFFFF</small></div>
+        <div class="chip"><span class="swatch" style="background:#F7F5FF"></span>surface<small>#F7F5FF</small></div>
+        <div class="chip"><span class="swatch" style="background:#8B5CF6"></span>primary<small>#8B5CF6</small></div>
+        <div class="chip"><span class="swatch" style="background:#2C2140"></span>text<small>#2C2140</small></div>
+        <div class="chip"><span class="swatch" style="background:#22C55E"></span>success<small>#22C55E</small></div>
+        <div class="chip"><span class="swatch" style="background:#F97316"></span>warning<small>#F97316</small></div>
+        <div class="chip"><span class="swatch" style="background:#E4DBFF"></span>border<small>#E4DBFF</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 6. NOCHE CHUSCA (MODO OSCURO, OPCIONAL) ============ -->
+    <section class="theme-card theme-noche">
+      <span class="badge-dark">Modo oscuro · opcional</span>
+      <h2>Noche Chusca 🌙</h2>
+      <p class="register">La única variante oscura del set — mismo acento cálido que la #1, pero de noche. Solo referencia, no es requisito para esta ronda.</p>
+
+      <div class="chips">
+        <div class="chip"><span class="swatch" style="background:#121212"></span>bg<small>#121212</small></div>
+        <div class="chip"><span class="swatch" style="background:#1E1E1E"></span>surface<small>#1E1E1E</small></div>
+        <div class="chip"><span class="swatch" style="background:#FF7A50"></span>primary<small>#FF7A50</small></div>
+        <div class="chip"><span class="swatch" style="background:#F5F5F5"></span>text<small>#F5F5F5</small></div>
+        <div class="chip"><span class="swatch" style="background:#4ADE80"></span>success<small>#4ADE80</small></div>
+        <div class="chip"><span class="swatch" style="background:#FBBF24"></span>warning<small>#FBBF24</small></div>
+        <div class="chip"><span class="swatch" style="background:#333333"></span>border<small>#333333</small></div>
+      </div>
+
+      <div class="phone-mock">
+        <div class="bathroom-card">
+          <div class="bathroom-top">
+            <div class="icon-circle">🚽</div>
+            <div>
+              <p class="bathroom-name">Café Toldo — Condesa</p>
+              <p class="bathroom-sub">Cafetería · Baño mixto</p>
+            </div>
+          </div>
+          <div class="rating-row">
+            <span class="stars">★★★★☆</span>
+            <span class="score-tag">4.5 ⭐ — ¡una joya!</span>
+          </div>
+          <div class="distance-row">📍 320 m — unos 4 min caminando</div>
+          <button class="cta-btn">🚽 Check-in aquí</button>
+          <div class="compare-row">
+            <div class="compare-pill good">4.5 😍 top</div>
+            <div class="compare-pill bad">2.0 😬 mejor evítalo</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
