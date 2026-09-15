@@ -1,0 +1,11 @@
+node_modules
+
+# Secretos — nunca committear
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+.DS_Store

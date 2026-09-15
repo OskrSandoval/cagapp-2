@@ -1,0 +1,5 @@
+# Secretos — nunca committear (frontend/ y backend/ tienen su propio .gitignore
+# con la misma regla; esta cubre un .env eventual en la raíz del repo).
+.env
+
+.DS_Store
