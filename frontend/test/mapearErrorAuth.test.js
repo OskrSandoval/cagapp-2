@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { mapearErrorAuth } from '../src/auth/mapearErrorAuth.js';
 
