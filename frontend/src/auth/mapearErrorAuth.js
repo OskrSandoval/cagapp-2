@@ -11,8 +11,16 @@ export function mapearErrorAuth(error) {
     return 'Ese correo ya tiene cuenta en CagApp 🚽 — mejor inicia sesión.';
   }
 
+  if (mensaje.includes('password') && mensaje.includes('different')) {
+    return 'Tu nueva contraseña debe ser diferente a la anterior 🔁 — prueba con otra.';
+  }
+
   if (mensaje.includes('password') && (mensaje.includes('at least') || mensaje.includes('should be') || mensaje.includes('short') || mensaje.includes('weak') || mensaje.includes('characters'))) {
     return 'Esa contraseña está muy floja 💦 — necesita al menos 6 caracteres.';
+  }
+
+  if (mensaje.includes('session') && (mensaje.includes('missing') || mensaje.includes('expired') || mensaje.includes('not found'))) {
+    return 'Tu sesión de recuperación ya venció — pide un nuevo link e inténtalo otra vez 🔄';
   }
 
   if (mensaje.includes('invalid login credentials') || mensaje.includes('invalid_credentials')) {

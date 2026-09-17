@@ -65,4 +65,22 @@ describe('Login — pestaña Iniciar sesión', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/correo o contraseña incorrectos/i);
     expect(onAutenticado).not.toHaveBeenCalled();
   });
+
+  // Story 1.3: el link "olvide" navega a RecuperarAcceso (sin router, por
+  // estado interno) y "Volver a iniciar sesión" regresa al formulario.
+  it('el link "¿Se te olvidó?" navega a Recuperar acceso y "Volver" regresa al login', async () => {
+    const usuario = userEvent.setup();
+
+    render(<Login onAutenticado={vi.fn()} />);
+    await usuario.click(screen.getByRole('button', { name: /se te olvidó/i }));
+
+    expect(await screen.findByRole('heading', { name: /recuperar acceso/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /iniciar sesión/i })).not.toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /volver a iniciar sesión/i }));
+
+    expect(await screen.findByRole('tab', { name: /iniciar sesión/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /recuperar acceso/i })).not.toBeInTheDocument();
+  });
 });

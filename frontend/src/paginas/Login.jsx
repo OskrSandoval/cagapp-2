@@ -2,17 +2,17 @@ import { useRef, useState } from 'react';
 import { supabase } from '../auth/supabaseClient';
 import { mapearErrorAuth } from '../auth/mapearErrorAuth';
 import { crearPerfil } from '../api/perfilesApi';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { EMAIL_REGEX } from '../auth/validacionEmail';
+import RecuperarAcceso from './RecuperarAcceso';
 
 export default function Login({ onAutenticado }) {
+  const [vista, setVista] = useState('formulario'); // 'formulario' | 'recuperar'
   const [tab, setTab] = useState('login'); // 'login' | 'registro'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nombreParaMostrar, setNombreParaMostrar] = useState('');
   const [errores, setErrores] = useState({});
   const [errorGeneral, setErrorGeneral] = useState('');
-  const [avisoRecuperar, setAvisoRecuperar] = useState('');
   const [cargando, setCargando] = useState(false);
 
   const emailRef = useRef(null);
@@ -23,7 +23,6 @@ export default function Login({ onAutenticado }) {
     setTab(siguiente);
     setErrores({});
     setErrorGeneral('');
-    setAvisoRecuperar('');
     // Los campos compartidos (correo) se conservan; solo se limpia lo
     // exclusivo de la otra pestaña (nombre para mostrar).
     if (siguiente === 'login') {
@@ -119,6 +118,10 @@ export default function Login({ onAutenticado }) {
     }
   }
 
+  if (vista === 'recuperar') {
+    return <RecuperarAcceso onVolver={() => setVista('formulario')} />;
+  }
+
   return (
     <div className="pantalla-login">
       <div className="tarjeta-login">
@@ -208,18 +211,12 @@ export default function Login({ onAutenticado }) {
 
           {tab === 'login' && (
             <div className="olvide">
-              <button
-                type="button"
-                onClick={() => {
-                  setAvisoRecuperar('Muy pronto podrás recuperar tu contraseña desde aquí 🔧');
-                }}
-              >
+              <button type="button" onClick={() => setVista('recuperar')}>
                 ¿Se te olvidó? Recupérala aquí 🔑
               </button>
             </div>
           )}
 
-          {avisoRecuperar && <p className="aviso">{avisoRecuperar}</p>}
           {errorGeneral && (
             <p className="mensaje-error mensaje-error-general" role="alert">
               {errorGeneral}

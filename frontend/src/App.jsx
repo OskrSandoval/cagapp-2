@@ -3,6 +3,7 @@ import { supabase } from './auth/supabaseClient';
 import { obtenerMiPerfil } from './api/perfilesApi';
 import Login from './paginas/Login';
 import CompletarPerfil from './paginas/CompletarPerfil';
+import RestablecerContrasena from './paginas/RestablecerContrasena';
 
 // Story 1.1 solo cubre registro + configuración inicial: no existe todavía
 // una "app real" detrás del login (eso llega en épicas futuras). Esta
@@ -30,12 +31,20 @@ function Bienvenida({ perfil, onCerrarSesion }) {
 export default function App() {
   const [sesion, setSesion] = useState(undefined); // undefined = cargando
   const [perfil, setPerfil] = useState(undefined); // undefined = sin revisar, null = 404
+  // Story 1.3: true cuando el usuario llegó desde el link de recuperación de
+  // contraseña (Supabase emite el evento PASSWORD_RECOVERY vía
+  // onAuthStateChange). Manda a "Restablecer contraseña" antes que
+  // cualquier otra pantalla, aunque la sesión de recuperación ya exista.
+  const [enRecuperacion, setEnRecuperacion] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSesion(data.session));
 
-    const { data: suscripcion } = supabase.auth.onAuthStateChange((_evento, nuevaSesion) => {
+    const { data: suscripcion } = supabase.auth.onAuthStateChange((evento, nuevaSesion) => {
       setSesion(nuevaSesion);
+      if (evento === 'PASSWORD_RECOVERY') {
+        setEnRecuperacion(true);
+      }
       if (!nuevaSesion) {
         setPerfil(undefined);
       }
@@ -69,6 +78,10 @@ export default function App() {
 
   if (sesion === undefined) {
     return null; // evita parpadeo mientras Supabase resuelve la sesión guardada
+  }
+
+  if (enRecuperacion) {
+    return <RestablecerContrasena onCompletado={() => setEnRecuperacion(false)} />;
   }
 
   if (!sesion) {

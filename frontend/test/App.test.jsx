@@ -85,4 +85,30 @@ describe('App — puerta de entrada obligatoria', () => {
     expect(await screen.findByRole('tab', { name: /iniciar sesión/i })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /ya estás dentro/i })).not.toBeInTheDocument();
   });
+
+  // Story 1.3 AC: el usuario que llega desde el link de recuperación ve
+  // "Restablecer contraseña" antes que cualquier otra pantalla.
+  it('detecta PASSWORD_RECOVERY (link del correo) y muestra Restablecer contraseña antes que Login', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } });
+
+    render(<App />);
+    await screen.findByRole('tab', { name: /iniciar sesión/i });
+
+    capturarCambioDeAuth('PASSWORD_RECOVERY', SESION_DE_PRUEBA);
+
+    expect(await screen.findByRole('heading', { name: /restablecer contraseña/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /iniciar sesión/i })).not.toBeInTheDocument();
+  });
+
+  it('PASSWORD_RECOVERY tiene prioridad incluso si ya hay una sesión persistida', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: SESION_DE_PRUEBA } });
+    obtenerMiPerfil.mockResolvedValue(PERFIL_DE_PRUEBA);
+
+    render(<App />);
+
+    capturarCambioDeAuth('PASSWORD_RECOVERY', SESION_DE_PRUEBA);
+
+    expect(await screen.findByRole('heading', { name: /restablecer contraseña/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /ya estás dentro/i })).not.toBeInTheDocument();
+  });
 });
