@@ -16,6 +16,18 @@ vi.mock('../src/api/perfilesApi', () => ({
   obtenerMiPerfil: vi.fn(),
 }));
 
+// Mapa usa Leaflet (necesita layout real); aquí solo importa que App lo monte.
+vi.mock('../src/paginas/Mapa', () => ({
+  default: ({ onCerrarSesion }) => (
+    <div>
+      <h1>Mapa de prueba</h1>
+      <button type="button" onClick={onCerrarSesion}>
+        Cerrar sesión
+      </button>
+    </div>
+  ),
+}));
+
 const { supabase } = await import('../src/auth/supabaseClient');
 const { obtenerMiPerfil } = await import('../src/api/perfilesApi.js');
 const { default: App } = await import('../src/App.jsx');
@@ -48,7 +60,7 @@ describe('App — puerta de entrada obligatoria', () => {
     render(<App />);
 
     expect(await screen.findByRole('tab', { name: /iniciar sesión/i })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /ya estás dentro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /mapa de prueba/i })).not.toBeInTheDocument();
   });
 
   it('con una sesión ya persistida (getSession la resuelve sola) entra directo, sin pedir login de nuevo', async () => {
@@ -62,7 +74,7 @@ describe('App — puerta de entrada obligatoria', () => {
     // Login antes de confirmar la sesión persistida, justo lo que esta AC prohíbe.
     expect(screen.queryByRole('tab', { name: /iniciar sesión/i })).not.toBeInTheDocument();
 
-    expect(await screen.findByRole('heading', { name: /ya estás dentro/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /mapa de prueba/i })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /iniciar sesión/i })).not.toBeInTheDocument();
   });
 
@@ -72,7 +84,7 @@ describe('App — puerta de entrada obligatoria', () => {
     obtenerMiPerfil.mockResolvedValue(PERFIL_DE_PRUEBA);
 
     render(<App />);
-    await screen.findByRole('heading', { name: /ya estás dentro/i });
+    await screen.findByRole('heading', { name: /mapa de prueba/i });
 
     await usuario.click(screen.getByRole('button', { name: /cerrar sesión/i }));
 
@@ -83,7 +95,7 @@ describe('App — puerta de entrada obligatoria', () => {
     capturarCambioDeAuth('SIGNED_OUT', null);
 
     expect(await screen.findByRole('tab', { name: /iniciar sesión/i })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /ya estás dentro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /mapa de prueba/i })).not.toBeInTheDocument();
   });
 
   // Story 1.3 AC: el usuario que llega desde el link de recuperación ve
@@ -109,6 +121,6 @@ describe('App — puerta de entrada obligatoria', () => {
     capturarCambioDeAuth('PASSWORD_RECOVERY', SESION_DE_PRUEBA);
 
     expect(await screen.findByRole('heading', { name: /restablecer contraseña/i })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /ya estás dentro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /mapa de prueba/i })).not.toBeInTheDocument();
   });
 });

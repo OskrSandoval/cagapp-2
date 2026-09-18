@@ -199,3 +199,20 @@ body {
   margin-top: 18px;
   line-height: 1.5;
 }
+
+/* Story 2.1: pantalla Mapa */
+.mapa-pantalla { position: relative; height: 100vh; width: 100%; overflow: hidden; }
+.mapa-lienzo { position: absolute; inset: 0; z-index: 0; }
+.control-flotante { position: absolute; top: 12px; z-index: 500; min-height: 44px; padding: 0 14px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 22px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.control-izquierda { left: 12px; }
+.capa-estado { position: absolute; top: 68px; left: 12px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; max-width: 375px; margin: 0 auto; pointer-events: none; }
+.capa-estado > * { pointer-events: auto; }
+.surface-tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 0; font-size: 13px; line-height: 1.4; }
+.surface-titulo { margin: 0 0 6px; font-weight: 800; }
+.fab-agregar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 500; min-height: 48px; padding: 0 20px; background: var(--primary); color: var(--primary-ink); border: none; border-radius: 24px; font-size: 15px; font-weight: 800; cursor: pointer; }
+.pin-contenedor { background: none; border: none; }
+.pin-calificacion { display: inline-block; min-width: 24px; min-height: 24px; padding: 4px 8px; border-radius: 14px; font-size: 12px; font-weight: 800; white-space: nowrap; color: var(--primary-ink); border: 2px solid var(--bg); transform: translate(-50%, -100%); }
+.pin-alto { background: var(--success); }
+.pin-medio { background: var(--primary); }
+.pin-bajo { background: var(--warning); }
+.pin-sin { background: var(--muted); }

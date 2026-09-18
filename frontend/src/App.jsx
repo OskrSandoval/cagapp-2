@@ -4,29 +4,7 @@ import { obtenerMiPerfil } from './api/perfilesApi';
 import Login from './paginas/Login';
 import CompletarPerfil from './paginas/CompletarPerfil';
 import RestablecerContrasena from './paginas/RestablecerContrasena';
-
-// Story 1.1 solo cubre registro + configuración inicial: no existe todavía
-// una "app real" detrás del login (eso llega en épicas futuras). Esta
-// pantalla de bienvenida es un placeholder mínimo para poder verificar el
-// flujo completo (Auth + perfil) de punta a punta.
-function Bienvenida({ perfil, onCerrarSesion }) {
-  return (
-    <div className="pantalla-login">
-      <div className="tarjeta-login">
-        <div className="marca">
-          <div className="logo-emoji">💩</div>
-          <h1>
-            Ya <span className="marca-app">estás</span> dentro
-          </h1>
-          <p>Qué gusto verte, {perfil?.nombre_para_mostrar} 🎉</p>
-        </div>
-        <button type="button" className="boton-primario" onClick={onCerrarSesion}>
-          Cerrar sesión
-        </button>
-      </div>
-    </div>
-  );
-}
+import Mapa from './paginas/Mapa';
 
 export default function App() {
   const [sesion, setSesion] = useState(undefined); // undefined = cargando
@@ -97,8 +75,7 @@ export default function App() {
   }
 
   return (
-    <Bienvenida
-      perfil={perfil}
+    <Mapa
       onCerrarSesion={async () => {
         await supabase.auth.signOut();
       }}
