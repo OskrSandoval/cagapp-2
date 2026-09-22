@@ -205,6 +205,7 @@ body {
 .mapa-lienzo { position: absolute; inset: 0; z-index: 0; }
 .control-flotante { position: absolute; top: 12px; z-index: 500; min-height: 44px; padding: 0 14px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 22px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .control-izquierda { left: 12px; }
+.control-derecha { right: 12px; }
 .capa-estado { position: absolute; top: 68px; left: 12px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; max-width: 375px; margin: 0 auto; pointer-events: none; }
 .capa-estado > * { pointer-events: auto; }
 .surface-tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 0; font-size: 13px; line-height: 1.4; }
@@ -216,3 +217,12 @@ body {
 .pin-medio { background: var(--primary); }
 .pin-bajo { background: var(--warning); }
 .pin-sin { background: var(--muted); }
+
+/* Story 2.2: pantalla Lista */
+.mapa-lienzo--oculto { visibility: hidden; }
+.lista-banos { position: absolute; inset: 0; z-index: 0; margin: 0; padding: 118px 12px 96px; list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: #ededed; }
+.fila-bano { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.fila-bano-info { min-width: 0; }
+.fila-bano-nombre { margin: 0; font-size: 14px; font-weight: 800; color: var(--text); }
+.fila-bano-meta { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.pin-en-fila { display: inline-block; min-width: 24px; min-height: 24px; padding: 4px 8px; border-radius: 14px; font-size: 12px; font-weight: 800; white-space: nowrap; color: var(--primary-ink); flex-shrink: 0; }

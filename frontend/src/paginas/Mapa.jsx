@@ -3,8 +3,21 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { obtenerBanosCercanos } from '../api/banosApi';
 import { etiquetaPin, nivelCalificacion } from './pinMapa';
+import Lista from './Lista';
 
 const CENTRO_CDMX = [19.4326, -99.1332];
+
+// Filtro de distancia entre coordenadas crudo (no es Haversine, no viola
+// AD-4): evita pedir baños en cada evento de watchPosition por ruido de GPS.
+const UMBRAL_COORDENADAS = 0.0003;
+
+function coordenadasCambiaronSuficiente(anterior, actual) {
+  if (!anterior) return true;
+  return (
+    Math.abs(anterior.lat - actual.lat) > UMBRAL_COORDENADAS ||
+    Math.abs(anterior.lng - actual.lng) > UMBRAL_COORDENADAS
+  );
+}
 
 function crearIconoPin(bano) {
   return L.divIcon({
@@ -20,6 +33,8 @@ export default function Mapa({ onCerrarSesion }) {
   const capaBanosRef = useRef(null);
   const capaUsuarioRef = useRef(null);
   const peticionRef = useRef(0);
+  const ultimaUbicacionSolicitadaRef = useRef(null);
+  const centradoInicialRef = useRef(false);
 
   // 'localizando' | 'ubicado' | 'zona'
   const [modo, setModo] = useState(() => (navigator.geolocation ? 'localizando' : 'zona'));
@@ -28,6 +43,8 @@ export default function Mapa({ onCerrarSesion }) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [textoZona, setTextoZona] = useState('');
+  // 'mapa' | 'lista'
+  const [vista, setVista] = useState('mapa');
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -46,19 +63,37 @@ export default function Mapa({ onCerrarSesion }) {
   }, []);
 
   // Geolocalización del navegador; cualquier falla cae al buscador por zona.
+  // watchPosition (no getCurrentPosition) para que la Lista se reordene sola
+  // si el usuario se mueve; un umbral de coordenadas evita refetch en cada
+  // evento (ruido de GPS).
   useEffect(() => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
+    const idObservador = navigator.geolocation.watchPosition(
       (posicion) => {
         const { latitude: lat, longitude: lng } = posicion.coords;
         setUbicacion({ lat, lng });
         setModo('ubicado');
-        cargarBanos({ lat, lng });
+        if (coordenadasCambiaronSuficiente(ultimaUbicacionSolicitadaRef.current, { lat, lng })) {
+          ultimaUbicacionSolicitadaRef.current = { lat, lng };
+          cargarBanos({ lat, lng });
+        }
       },
-      () => setModo('zona'),
+      // Una falla transitoria (timeout, señal perdida) no debe tirar al
+      // usuario de vuelta al buscador por zona si ya tenía una ubicación
+      // buena — solo cae a 'zona' mientras no se haya alcanzado 'ubicado'.
+      () => setModo((actual) => (actual === 'ubicado' ? actual : 'zona')),
       { timeout: 10000 }
     );
+    return () => navigator.geolocation.clearWatch(idObservador);
   }, []);
+
+  // Al volver de Lista a Mapa el lienzo estuvo oculto (sin desmontarse);
+  // Leaflet necesita que se le avise para no quedar con tamaño stale.
+  useEffect(() => {
+    if (vista === 'mapa') {
+      mapaRef.current?.invalidateSize();
+    }
+  }, [vista]);
 
   async function cargarBanos(parametros) {
     const id = ++peticionRef.current;
@@ -77,7 +112,10 @@ export default function Mapa({ onCerrarSesion }) {
     }
   }
 
-  // Dibuja mi ubicación.
+  // Dibuja mi ubicación. El marcador se mueve en cada evento de
+  // watchPosition, pero el recentrado automático (setView) solo ocurre en el
+  // primer fix — si no, cada tick de GPS pelearía contra el pan/zoom manual
+  // del usuario.
   useEffect(() => {
     const mapa = mapaRef.current;
     if (!mapa || !ubicacion) return;
@@ -91,7 +129,10 @@ export default function Mapa({ onCerrarSesion }) {
     })
       .bindTooltip('Tú estás aquí')
       .addTo(capaUsuarioRef.current);
-    mapa.setView([ubicacion.lat, ubicacion.lng], 15);
+    if (!centradoInicialRef.current) {
+      mapa.setView([ubicacion.lat, ubicacion.lng], 15);
+      centradoInicialRef.current = true;
+    }
   }, [ubicacion]);
 
   // Dibuja los pines de baños.
@@ -123,10 +164,25 @@ export default function Mapa({ onCerrarSesion }) {
 
   return (
     <div className="mapa-pantalla">
-      <div ref={contenedorRef} className="mapa-lienzo" data-testid="lienzo-mapa" />
+      <div
+        ref={contenedorRef}
+        className={`mapa-lienzo${vista === 'lista' ? ' mapa-lienzo--oculto' : ''}`}
+        data-testid="lienzo-mapa"
+      />
+
+      {vista === 'lista' && <Lista banos={banos} />}
 
       <button type="button" className="control-flotante control-izquierda" onClick={onCerrarSesion}>
         Cerrar sesión
+      </button>
+
+      <button
+        type="button"
+        className="control-flotante control-derecha"
+        onClick={() => setVista((actual) => (actual === 'mapa' ? 'lista' : 'mapa'))}
+        aria-pressed={vista === 'lista'}
+      >
+        {vista === 'mapa' ? '☰ Ver lista' : '☰ Ver mapa'}
       </button>
 
       <div className="capa-estado">
