@@ -226,3 +226,20 @@ body {
 .fila-bano-nombre { margin: 0; font-size: 14px; font-weight: 800; color: var(--text); }
 .fila-bano-meta { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .pin-en-fila { display: inline-block; min-width: 24px; min-height: 24px; padding: 4px 8px; border-radius: 14px; font-size: 12px; font-weight: 800; white-space: nowrap; color: var(--primary-ink); flex-shrink: 0; }
+.fila-bano-boton { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; background: none; border: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+
+/* Story 2.3: overlay de Detalle (nunca desmonta .mapa-lienzo debajo) */
+.detalle-pantalla { position: absolute; inset: 0; z-index: 600; background: var(--bg); display: flex; flex-direction: column; overflow-y: auto; }
+.detalle-nav { display: flex; align-items: center; gap: 10px; padding: 12px 16px 4px; font-size: 13px; font-weight: 700; color: var(--text); }
+.detalle-volver { width: 42px; height: 42px; min-width: 42px; min-height: 42px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; padding: 0; }
+.detalle-contenido { flex: 1; padding: 8px 16px 24px; }
+.detalle-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-top: 6px; }
+.detalle-hero-top { display: flex; gap: 12px; align-items: flex-start; }
+.detalle-icono { width: 48px; height: 48px; min-width: 48px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); display: flex; align-items: center; justify-content: center; font-size: 22px; flex: none; }
+.detalle-nombre { margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text); }
+.detalle-subtitulo { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+.detalle-calificacion-fila { display: flex; align-items: center; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
+.detalle-estrellas { color: var(--primary); font-size: 17px; letter-spacing: 2px; }
+.detalle-pill-calificacion { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #e6f4eb; color: var(--success); }
+.detalle-sin-calificacion { margin: 14px 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.detalle-distancia { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin: 0; }

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import Lista from '../src/paginas/Lista.jsx';
 
 const BANO_CERCA = {
@@ -58,5 +59,16 @@ describe('Lista', () => {
 
     expect(screen.getByText('Plaza Uno')).toBeInTheDocument();
     expect(screen.getByText('Centro')).toBeInTheDocument();
+  });
+
+  it('cada fila es tappable (botón real) y llama a onSeleccionar con el baño correcto', async () => {
+    const usuario = userEvent.setup();
+    const onSeleccionar = vi.fn();
+    render(<Lista banos={[BANO_CERCA, BANO_LEJOS]} onSeleccionar={onSeleccionar} />);
+
+    await usuario.click(screen.getByRole('button', { name: /plaza dos/i }));
+
+    expect(onSeleccionar).toHaveBeenCalledTimes(1);
+    expect(onSeleccionar).toHaveBeenCalledWith(BANO_LEJOS);
   });
 });

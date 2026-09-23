@@ -10,7 +10,12 @@ const leaflet = vi.hoisted(() => {
     remove: vi.fn(),
     invalidateSize: vi.fn(),
   };
-  const marcador = { bindPopup: vi.fn().mockReturnThis(), bindTooltip: vi.fn().mockReturnThis(), addTo: vi.fn() };
+  const marcador = {
+    bindPopup: vi.fn().mockReturnThis(),
+    bindTooltip: vi.fn().mockReturnThis(),
+    addTo: vi.fn().mockReturnThis(),
+    on: vi.fn(),
+  };
   return {
     mapa,
     marcador,
@@ -33,7 +38,27 @@ const { obtenerBanosCercanos } = await import('../src/api/banosApi');
 const { default: Mapa } = await import('../src/paginas/Mapa.jsx');
 const { etiquetaPin, nivelCalificacion } = await import('../src/paginas/pinMapa.js');
 
-const BANO = { id: '1', nombre: 'Plaza Uno', lat: 19.43, lng: -99.13, zona: 'Centro', calificacion_promedio: null };
+const BANO = {
+  id: '1',
+  nombre: 'Plaza Uno',
+  lat: 19.43,
+  lng: -99.13,
+  zona: 'Centro',
+  tipo_lugar: 'Cafetería',
+  calificacion_promedio: null,
+  distancia_metros: 150,
+};
+
+const BANO_DOS = {
+  id: '2',
+  nombre: 'Plaza Dos',
+  lat: 19.45,
+  lng: -99.15,
+  zona: 'Roma Norte',
+  tipo_lugar: 'Parque',
+  calificacion_promedio: null,
+  distancia_metros: 900,
+};
 
 /**
  * Mock de geolocalización con `watchPosition`/`clearWatch`. `emitir` permite
@@ -66,6 +91,7 @@ describe('Mapa', () => {
     leaflet.default.divIcon.mockClear();
     leaflet.default.tileLayer.mockClear();
     leaflet.mapa.invalidateSize.mockClear();
+    leaflet.marcador.on.mockClear();
   });
 
   it('con ubicación concedida pide baños por lat/lng y pinta cada pin con "sin calificaciones"', async () => {
@@ -198,6 +224,62 @@ describe('Mapa', () => {
 
     await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
     expect(obtenerBanosCercanos).toHaveBeenLastCalledWith({ lat: 19.4326 + 0.001, lng: -99.1332 });
+  });
+
+  it('tocar un pin abre el Detalle con los datos del baño; Volver lo cierra y vuelve al Mapa', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.marcador.on).toHaveBeenCalledWith('click', expect.any(Function)));
+
+    const manejadorClick = leaflet.marcador.on.mock.calls[0][1];
+    act(() => manejadorClick());
+
+    expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
+    expect(screen.getByText('Cafetería · Centro')).toBeInTheDocument();
+    expect(screen.getByTestId('lienzo-mapa')).toBeInTheDocument(); // el lienzo sigue montado debajo
+
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('lienzo-mapa')).toBeInTheDocument();
+  });
+
+  it('con varios pines, cada marcador abre el Detalle del baño que le corresponde (no siempre el primero)', async () => {
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO, BANO_DOS]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.marcador.on).toHaveBeenCalledTimes(2));
+
+    const manejadorClickSegundoPin = leaflet.marcador.on.mock.calls[1][1];
+    act(() => manejadorClickSegundoPin());
+
+    expect(screen.getByRole('dialog', { name: /detalle de plaza dos/i })).toBeInTheDocument();
+    expect(screen.getByText('Parque · Roma Norte')).toBeInTheDocument();
+  });
+
+  it('tocar una fila de la Lista abre el mismo Detalle', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+    await usuario.click(screen.getByRole('button', { name: /ver lista/i }));
+
+    await usuario.click(screen.getByRole('button', { name: /plaza uno/i }));
+
+    expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+
+    // Vuelve exactamente a la superficie de origen (Lista), sin perder `vista`.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Plaza Uno')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ver mapa/i })).toBeInTheDocument();
   });
 
   it('limpia watchPosition con clearWatch al desmontar', async () => {

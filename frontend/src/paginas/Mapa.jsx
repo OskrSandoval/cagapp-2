@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { obtenerBanosCercanos } from '../api/banosApi';
 import { etiquetaPin, nivelCalificacion } from './pinMapa';
 import Lista from './Lista';
+import Detalle from './Detalle';
 
 const CENTRO_CDMX = [19.4326, -99.1332];
 
@@ -45,6 +46,11 @@ export default function Mapa({ onCerrarSesion }) {
   const [textoZona, setTextoZona] = useState('');
   // 'mapa' | 'lista'
   const [vista, setVista] = useState('mapa');
+  // Baño abierto en el Detalle; null = Detalle cerrado. Es la misma
+  // referencia que vive en `banos` (no se clona) — solo "parece" congelada
+  // porque `banos` se reemplaza por completo en cada refetch, nunca se muta
+  // en su lugar. Estado local, sin router (ver spec 2.3).
+  const [banoSeleccionado, setBanoSeleccionado] = useState(null);
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -143,9 +149,8 @@ export default function Mapa({ onCerrarSesion }) {
     if (!banos || banos.length === 0) return;
     const puntos = banos.map((bano) => {
       const marcador = L.marker([bano.lat, bano.lng], { icon: crearIconoPin(bano), title: bano.nombre });
-      const popup = document.createElement('span');
-      popup.textContent = bano.nombre;
-      marcador.bindPopup(popup).addTo(capaBanosRef.current);
+      marcador.on('click', () => setBanoSeleccionado(bano));
+      marcador.addTo(capaBanosRef.current);
       return [bano.lat, bano.lng];
     });
     if (!ubicacion) {
@@ -170,7 +175,7 @@ export default function Mapa({ onCerrarSesion }) {
         data-testid="lienzo-mapa"
       />
 
-      {vista === 'lista' && <Lista banos={banos} />}
+      {vista === 'lista' && <Lista banos={banos} onSeleccionar={setBanoSeleccionado} />}
 
       <button type="button" className="control-flotante control-izquierda" onClick={onCerrarSesion}>
         Cerrar sesión
@@ -231,6 +236,10 @@ export default function Mapa({ onCerrarSesion }) {
       <button type="button" className="fab-agregar">
         ➕ Agregar Baño
       </button>
+
+      {banoSeleccionado && (
+        <Detalle bano={banoSeleccionado} onVolver={() => setBanoSeleccionado(null)} />
+      )}
     </div>
   );
 }
