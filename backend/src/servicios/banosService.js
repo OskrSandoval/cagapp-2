@@ -53,3 +53,22 @@ export async function listarBanos({ lat, lng, zona } = {}, cliente = clientePorD
 
   return banos;
 }
+
+/**
+ * Inserta un baño nuevo (Story 2.4). `creadoPor` siempre sale de
+ * `req.usuarioId` (JWT verificado) en el controlador, nunca del body — esta
+ * capa solo hace el `insert`, mismo patrón que `crearOActualizarPerfil`.
+ */
+export async function crearBano({ nombre, lat, lng, tipoLugar, zona, creadoPor }, cliente = clientePorDefecto) {
+  const { data, error } = await cliente
+    .from('baños')
+    .insert({ nombre, lat, lng, tipo_lugar: tipoLugar, zona, creado_por: creadoPor })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}

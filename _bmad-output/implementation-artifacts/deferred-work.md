@@ -27,3 +27,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-ver-baños-cercanos-en-el-mapa.md`
   summary: "`GET /banos` hace `select('*')` sin `range`/`order`: por encima del límite `max-rows` de Supabase (1000 por defecto) el resultado se trunca en silencio y, como la distancia se ordena en Node después, podrían faltar los baños más cercanos."
   evidence: Verificado como real (medium a escala) por el edge-case-hunter y el blind-hunter. No se corrige aquí porque el spec difiere explícitamente la paginación/filtro por radio; se atiende con la Story 2.2 o cuando crezca la tabla (filtro por bounding box en SQL antes de ordenar).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-agregar-un-baño-nuevo-con-búsqueda-de-duplicados.md`
+  summary: "El radio de duplicados de 1.5km solo se aplica en el frontend contra el `banos` ya cargado (posiblemente desactualizado); un `POST /banos` directo o dos usuarios creando casi al mismo tiempo pueden saltarse la validación."
+  evidence: Verificado como real por el blind-hunter. No se corrige aquí porque el spec y el epic describen este paso como obligatorio en el flujo de la UI (el usuario nunca puede saltárselo desde la app), no como una garantía de servidor contra clientes directos o carreras; la corrección completa (consulta de proximidad en el backend + manejo de condición de carrera) es una funcionalidad nueva, no un parche mínimo.

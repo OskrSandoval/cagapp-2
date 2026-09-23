@@ -32,9 +32,9 @@ const leaflet = vi.hoisted(() => {
 
 vi.mock('leaflet', () => ({ default: leaflet.default }));
 vi.mock('leaflet/dist/leaflet.css', () => ({}));
-vi.mock('../src/api/banosApi', () => ({ obtenerBanosCercanos: vi.fn() }));
+vi.mock('../src/api/banosApi', () => ({ obtenerBanosCercanos: vi.fn(), crearBano: vi.fn() }));
 
-const { obtenerBanosCercanos } = await import('../src/api/banosApi');
+const { obtenerBanosCercanos, crearBano } = await import('../src/api/banosApi');
 const { default: Mapa } = await import('../src/paginas/Mapa.jsx');
 const { etiquetaPin, nivelCalificacion } = await import('../src/paginas/pinMapa.js');
 
@@ -87,6 +87,7 @@ function geolocalizacion({ concede }) {
 describe('Mapa', () => {
   beforeEach(() => {
     obtenerBanosCercanos.mockReset();
+    crearBano.mockReset();
     leaflet.default.marker.mockClear();
     leaflet.default.divIcon.mockClear();
     leaflet.default.tileLayer.mockClear();
@@ -280,6 +281,86 @@ describe('Mapa', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByText('Plaza Uno')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ver mapa/i })).toBeInTheDocument();
+  });
+
+  it('el FAB "Agregar Baño" abre el overlay de Crear Baño', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(1));
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+
+    expect(screen.getByRole('dialog', { name: /agregar baño/i })).toBeInTheDocument();
+  });
+
+  it('crear un baño con éxito refresca banos y aterriza en el Detalle del nuevo baño (no de vuelta en Mapa)', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([]);
+    crearBano.mockResolvedValue({
+      id: 'nuevo-1',
+      nombre: 'Café Nuevo',
+      tipo_lugar: 'Cafetería',
+      zona: 'Centro',
+      calificacion_promedio: null,
+    });
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(1));
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+    await usuario.type(screen.getByLabelText(/^nombre$/i), 'Café Nuevo');
+    await usuario.type(screen.getByLabelText(/zona o colonia/i), 'Centro');
+    await usuario.type(screen.getByLabelText(/tipo de lugar/i), 'Cafetería');
+    await usuario.click(screen.getByRole('button', { name: /agregar baño 🚽/i }));
+
+    expect(await screen.findByRole('dialog', { name: /detalle de café nuevo/i })).toBeInTheDocument();
+    expect(crearBano).toHaveBeenCalledWith({
+      nombre: 'Café Nuevo',
+      zona: 'Centro',
+      tipoLugar: 'Cafetería',
+      lat: 19.4326,
+      lng: -99.1332,
+    });
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
+  });
+
+  it('con un baño duplicado a <=1.5km, Agregar Baño muestra ese baño en vez del formulario', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]); // distancia_metros: 150, dentro del radio
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+
+    expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+  });
+
+  it('sin ubicación conocida, Agregar Baño muestra el bloqueo y reintentar pide permiso de nuevo', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: false });
+    obtenerBanosCercanos.mockResolvedValue([]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await screen.findByLabelText(/zona o colonia/i);
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+
+    expect(screen.getByText(/sin tu ubicación/i)).toBeInTheDocument();
+
+    const getCurrentPosition = vi.fn((exito) => exito({ coords: { latitude: 19.4326, longitude: -99.1332 } }));
+    globalThis.navigator.geolocation.getCurrentPosition = getCurrentPosition;
+
+    await usuario.click(screen.getByRole('button', { name: /activar ubicación/i }));
+
+    expect(getCurrentPosition).toHaveBeenCalled();
+    await vi.waitFor(() => expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument());
   });
 
   it('limpia watchPosition con clearWatch al desmontar', async () => {

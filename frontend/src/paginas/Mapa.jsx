@@ -5,6 +5,7 @@ import { obtenerBanosCercanos } from '../api/banosApi';
 import { etiquetaPin, nivelCalificacion } from './pinMapa';
 import Lista from './Lista';
 import Detalle from './Detalle';
+import CrearBano from './CrearBano';
 
 const CENTRO_CDMX = [19.4326, -99.1332];
 
@@ -51,6 +52,9 @@ export default function Mapa({ onCerrarSesion }) {
   // porque `banos` se reemplaza por completo en cada refetch, nunca se muta
   // en su lugar. Estado local, sin router (ver spec 2.3).
   const [banoSeleccionado, setBanoSeleccionado] = useState(null);
+  // Overlay de Crear Baño (Story 2.4); mismo patrón de no desmontar el mapa
+  // que Detalle. Estado local, sin router.
+  const [mostrandoCrearBano, setMostrandoCrearBano] = useState(false);
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -158,6 +162,26 @@ export default function Mapa({ onCerrarSesion }) {
     }
   }, [banos, ubicacion]);
 
+  // Botón "Activar ubicación" del bloqueo de Crear Baño (Story 2.4): pide un
+  // fix puntual (no un watch nuevo) para reintentar el permiso sin duplicar
+  // el `watchPosition` continuo de arriba. Si el usuario ya lo denegó a
+  // nivel de navegador, esto vuelve a fallar en silencio y el mensaje
+  // bloqueante sigue ahí — es lo máximo que se puede hacer sin salir de la
+  // app a la configuración del sistema.
+  function reintentarUbicacion() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        const { latitude: lat, longitude: lng } = posicion.coords;
+        setUbicacion({ lat, lng });
+        setModo('ubicado');
+        ultimaUbicacionSolicitadaRef.current = { lat, lng };
+        cargarBanos({ lat, lng });
+      },
+      () => {}
+    );
+  }
+
   function buscarPorZona(evento) {
     evento.preventDefault();
     const zona = textoZona.trim();
@@ -232,13 +256,29 @@ export default function Mapa({ onCerrarSesion }) {
         )}
       </div>
 
-      {/* Stub: Story 2.4 lo reemplaza con el formulario real. */}
-      <button type="button" className="fab-agregar">
+      <button type="button" className="fab-agregar" onClick={() => setMostrandoCrearBano(true)}>
         ➕ Agregar Baño
       </button>
 
       {banoSeleccionado && (
         <Detalle bano={banoSeleccionado} onVolver={() => setBanoSeleccionado(null)} />
+      )}
+
+      {mostrandoCrearBano && (
+        <CrearBano
+          ubicacion={ubicacion}
+          banos={banos}
+          onVolver={() => setMostrandoCrearBano(false)}
+          onReintentarUbicacion={reintentarUbicacion}
+          onCreado={(nuevoBano) => {
+            setMostrandoCrearBano(false);
+            // Aterriza en el Detalle del baño recién creado (no de vuelta en
+            // Mapa) — está a distancia 0 de sí mismo, exactamente donde
+            // está el usuario, sin reimplementar Haversine para saberlo.
+            setBanoSeleccionado({ ...nuevoBano, calificacion_promedio: null, distancia_metros: 0 });
+            if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
+          }}
+        />
       )}
     </div>
   );

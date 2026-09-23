@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const serviciosMock = vi.hoisted(() => ({
   listarBanos: vi.fn(),
   calcularDistanciaMetros: vi.fn(),
+  crearBano: vi.fn(),
 }));
 
 vi.mock('../src/servicios/banosService.js', () => serviciosMock);
@@ -26,6 +27,7 @@ const auth = ['Authorization', 'Bearer token-valido'];
 describe('rutas /banos', () => {
   beforeEach(() => {
     serviciosMock.listarBanos.mockReset();
+    serviciosMock.crearBano.mockReset();
   });
 
   it('rechaza peticiones sin token con 401', async () => {
@@ -76,6 +78,74 @@ describe('rutas /banos', () => {
     const respuesta = await request(crearApp())
       .get('/banos?zona=Roma')
       .set(...auth);
+    expect(respuesta.status).toBe(500);
+    expect(respuesta.body).toHaveProperty('error');
+  });
+});
+
+describe('POST /banos', () => {
+  const cuerpoValido = { nombre: 'Café Uno', zona: 'Centro', tipo_lugar: 'Cafetería', lat: 19.43, lng: -99.13 };
+
+  it('rechaza peticiones sin token con 401', async () => {
+    const respuesta = await request(crearApp()).post('/banos').send(cuerpoValido);
+    expect(respuesta.status).toBe(401);
+    expect(serviciosMock.crearBano).not.toHaveBeenCalled();
+  });
+
+  it('crea el baño y usa el id del token verificado como creado_por, nunca el del body', async () => {
+    serviciosMock.crearBano.mockResolvedValue({ id: 'bano-1', ...cuerpoValido, creado_por: 'user-1' });
+
+    const respuesta = await request(crearApp())
+      .post('/banos')
+      .set(...auth)
+      .send({ ...cuerpoValido, creado_por: 'usuario-suplantado' });
+
+    expect(respuesta.status).toBe(201);
+    expect(respuesta.body).toEqual({ id: 'bano-1', ...cuerpoValido, creado_por: 'user-1' });
+    expect(serviciosMock.crearBano).toHaveBeenCalledWith({
+      nombre: 'Café Uno',
+      lat: 19.43,
+      lng: -99.13,
+      tipoLugar: 'Cafetería',
+      zona: 'Centro',
+      creadoPor: 'user-1',
+    });
+  });
+
+  it.each([
+    ['nombre', { ...cuerpoValido, nombre: '' }],
+    ['zona', { ...cuerpoValido, zona: '  ' }],
+    ['tipo_lugar', { ...cuerpoValido, tipo_lugar: '' }],
+  ])('responde 400 si falta %s', async (_campo, cuerpo) => {
+    const respuesta = await request(crearApp())
+      .post('/banos')
+      .set(...auth)
+      .send(cuerpo);
+    expect(respuesta.status).toBe(400);
+    expect(serviciosMock.crearBano).not.toHaveBeenCalled();
+  });
+
+  it('responde 400 si la ubicación es inválida o falta', async () => {
+    for (const cuerpo of [
+      { ...cuerpoValido, lat: undefined, lng: undefined },
+      { ...cuerpoValido, lat: 'no-es-numero' },
+      { ...cuerpoValido, lat: 95 },
+    ]) {
+      const respuesta = await request(crearApp())
+        .post('/banos')
+        .set(...auth)
+        .send(cuerpo);
+      expect(respuesta.status).toBe(400);
+    }
+    expect(serviciosMock.crearBano).not.toHaveBeenCalled();
+  });
+
+  it('responde 500 con error en formato AD-7 si el servicio falla', async () => {
+    serviciosMock.crearBano.mockRejectedValue(new Error('boom'));
+    const respuesta = await request(crearApp())
+      .post('/banos')
+      .set(...auth)
+      .send(cuerpoValido);
     expect(respuesta.status).toBe(500);
     expect(respuesta.body).toHaveProperty('error');
   });

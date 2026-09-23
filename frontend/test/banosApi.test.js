@@ -10,9 +10,10 @@ vi.mock('../src/auth/supabaseClient', () => ({
 }));
 
 const { supabase } = await import('../src/auth/supabaseClient');
-const { obtenerBanosCercanos } = await import('../src/api/banosApi.js');
+const { crearBano, obtenerBanosCercanos } = await import('../src/api/banosApi.js');
 
 const FALLBACK = 'No pudimos traer los baños 😬 — intenta de nuevo.';
+const FALLBACK_CREAR = 'No pudimos crear el baño 😬 — intenta de nuevo.';
 
 describe('banosApi.obtenerBanosCercanos', () => {
   beforeEach(() => {
@@ -78,6 +79,80 @@ describe('banosApi.obtenerBanosCercanos', () => {
   it('sin sesión lanza el error de sesión y no llama a fetch', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } });
     await expect(obtenerBanosCercanos({ zona: 'x' })).rejects.toThrow(/no hay sesión activa/i);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('banosApi.crearBano', () => {
+  beforeEach(() => {
+    supabase.auth.getSession.mockReset();
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'token-de-prueba' } } });
+    global.fetch = vi.fn();
+  });
+
+  it('manda POST con el body en español (tipo_lugar) y el token Bearer', async () => {
+    global.fetch.mockResolvedValue({ ok: true, json: async () => ({ id: 'nuevo-1' }) });
+
+    const bano = await crearBano({ nombre: 'Café Uno', zona: 'Centro', tipoLugar: 'Cafetería', lat: 19.43, lng: -99.13 });
+
+    expect(bano).toEqual({ id: 'nuevo-1' });
+    const [url, opciones] = global.fetch.mock.calls[0];
+    expect(url).toBe('http://localhost:3001/banos');
+    expect(opciones.method).toBe('POST');
+    expect(opciones.headers['Content-Type']).toBe('application/json');
+    expect(opciones.headers.Authorization).toBe('Bearer token-de-prueba');
+    expect(JSON.parse(opciones.body)).toEqual({
+      nombre: 'Café Uno',
+      zona: 'Centro',
+      tipo_lugar: 'Cafetería',
+      lat: 19.43,
+      lng: -99.13,
+    });
+  });
+
+  it('en respuesta no ok lanza el texto de error del backend', async () => {
+    global.fetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'Ese nombre está muy largo 📏' }) });
+    await expect(crearBano({ nombre: 'x', zona: 'x', tipoLugar: 'x', lat: 1, lng: 1 })).rejects.toThrow(
+      'Ese nombre está muy largo 📏'
+    );
+  });
+
+  it('en respuesta no ok sin JSON lanza el mensaje de marca', async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      json: async () => {
+        throw new SyntaxError('no json');
+      },
+    });
+    await expect(crearBano({ nombre: 'x', zona: 'x', tipoLugar: 'x', lat: 1, lng: 1 })).rejects.toThrow(
+      FALLBACK_CREAR
+    );
+  });
+
+  it('si el cuerpo exitoso no es JSON válido lanza el mensaje de marca', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => {
+        throw new SyntaxError('no json');
+      },
+    });
+    await expect(crearBano({ nombre: 'x', zona: 'x', tipoLugar: 'x', lat: 1, lng: 1 })).rejects.toThrow(
+      FALLBACK_CREAR
+    );
+  });
+
+  it('si fetch rechaza (sin red) lanza el mensaje de marca, no el error crudo', async () => {
+    global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(crearBano({ nombre: 'x', zona: 'x', tipoLugar: 'x', lat: 1, lng: 1 })).rejects.toThrow(
+      FALLBACK_CREAR
+    );
+  });
+
+  it('sin sesión lanza el error de sesión y no llama a fetch', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } });
+    await expect(crearBano({ nombre: 'x', zona: 'x', tipoLugar: 'x', lat: 1, lng: 1 })).rejects.toThrow(
+      /no hay sesión activa/i
+    );
     expect(global.fetch).not.toHaveBeenCalled();
   });
 });

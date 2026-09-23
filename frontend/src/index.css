@@ -243,3 +243,7 @@ body {
 .detalle-pill-calificacion { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #e6f4eb; color: var(--success); }
 .detalle-sin-calificacion { margin: 14px 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .detalle-distancia { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin: 0; }
+
+/* Story 2.4: overlay de Crear Baño (mismo .detalle-pantalla/.campo/.mensaje-error/.boton-primario de arriba) */
+.crear-bano-intro { margin: 6px 0 16px; }
+.detalle-contenido .surface-tarjeta .boton-primario { margin-top: 12px; }

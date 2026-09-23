@@ -59,3 +59,38 @@ export async function obtenerBanosCercanos({ lat, lng, zona } = {}) {
     throw new Error(MENSAJE_FALLBACK);
   }
 }
+
+/**
+ * Crea un baño nuevo (Story 2.4). `lat`/`lng` son la ubicación del
+ * dispositivo ya resuelta por `Mapa.jsx` — nunca un campo editable ni un
+ * picker de mapa.
+ */
+export async function crearBano({ nombre, zona, tipoLugar, lat, lng }) {
+  const token = await obtenerTokenActual();
+  const MENSAJE_FALLBACK = 'No pudimos crear el baño 😬 — intenta de nuevo.';
+
+  let respuesta;
+  try {
+    respuesta = await fetch(`${API_URL}/banos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ nombre, zona, tipo_lugar: tipoLugar, lat, lng }),
+    });
+  } catch {
+    throw new Error(MENSAJE_FALLBACK);
+  }
+
+  if (!respuesta.ok) {
+    const error = await leerCuerpoError(respuesta);
+    throw new Error(error || MENSAJE_FALLBACK);
+  }
+
+  try {
+    return await respuesta.json();
+  } catch {
+    throw new Error(MENSAJE_FALLBACK);
+  }
+}

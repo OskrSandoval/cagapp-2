@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { calcularDistanciaMetros, listarBanos } from '../src/servicios/banosService.js';
+import { calcularDistanciaMetros, crearBano, listarBanos } from '../src/servicios/banosService.js';
 
-function crearClienteFalso({ filas = [], error = null } = {}) {
-  const llamadas = { ilike: [] };
+function crearClienteFalso({ filas = [], error = null, errorInsert = null } = {}) {
+  const llamadas = { ilike: [], insert: [] };
   return {
     llamadas,
     from(tabla) {
@@ -17,6 +17,19 @@ function crearClienteFalso({ filas = [], error = null } = {}) {
           const termino = patron.replace(/^%|%$/g, '').replace(/\\/g, '').toLowerCase();
           resultado = resultado.filter((f) => f[campo].toLowerCase().includes(termino));
           return consulta;
+        },
+        insert(valores) {
+          llamadas.insert.push(valores);
+          return {
+            select() {
+              return {
+                async single() {
+                  if (errorInsert) return { data: null, error: errorInsert };
+                  return { data: { id: 'nuevo-1', ...valores }, error: null };
+                },
+              };
+            },
+          };
         },
         then(resolver, rechazar) {
           return Promise.resolve(error ? { data: null, error } : { data: resultado, error: null }).then(
@@ -84,5 +97,39 @@ describe('listarBanos', () => {
     await expect(listarBanos({ lat: 1, lng: 1 }, crearClienteFalso({ error: { message: 'boom' } }))).rejects.toThrow(
       'boom'
     );
+  });
+});
+
+describe('crearBano', () => {
+  it('inserta el baño con los campos en español y devuelve la fila creada', async () => {
+    const cliente = crearClienteFalso();
+    const bano = await crearBano(
+      { nombre: 'Café Uno', lat: 19.43, lng: -99.13, tipoLugar: 'Cafetería', zona: 'Centro', creadoPor: 'user-1' },
+      cliente
+    );
+
+    expect(cliente.llamadas.tabla).toBe('baños');
+    expect(cliente.llamadas.insert).toEqual([
+      { nombre: 'Café Uno', lat: 19.43, lng: -99.13, tipo_lugar: 'Cafetería', zona: 'Centro', creado_por: 'user-1' },
+    ]);
+    expect(bano).toEqual({
+      id: 'nuevo-1',
+      nombre: 'Café Uno',
+      lat: 19.43,
+      lng: -99.13,
+      tipo_lugar: 'Cafetería',
+      zona: 'Centro',
+      creado_por: 'user-1',
+    });
+  });
+
+  it('propaga un error legible si Supabase falla al insertar', async () => {
+    const cliente = crearClienteFalso({ errorInsert: { message: 'boom' } });
+    await expect(
+      crearBano(
+        { nombre: 'Café Uno', lat: 19.43, lng: -99.13, tipoLugar: 'Cafetería', zona: 'Centro', creadoPor: 'user-1' },
+        cliente
+      )
+    ).rejects.toThrow('boom');
   });
 });
