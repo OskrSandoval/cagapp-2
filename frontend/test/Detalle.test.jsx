@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Detalle from '../src/paginas/Detalle.jsx';
-import { bandaCalificacion, CAPTIONS_CALIFICACION } from '../src/paginas/calificacion.js';
+
+vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
+
+const { hacerCheckin } = await import('../src/api/checkinsApi');
+const { default: Detalle } = await import('../src/paginas/Detalle.jsx');
+const { bandaCalificacion, CAPTIONS_CALIFICACION } = await import('../src/paginas/calificacion.js');
 
 const BANO_SIN_CALIFICACION = {
   id: '1',
@@ -15,6 +19,24 @@ const BANO_SIN_CALIFICACION = {
   distancia_metros: 320,
 };
 
+const BANO_DENTRO_DE_RANGO = { ...BANO_SIN_CALIFICACION, id: '3', distancia_metros: 80 };
+
+/**
+ * Mock de geolocalización con `getCurrentPosition` puntual (mismo patrón
+ * puntual que `reintentarUbicacion` de Mapa.jsx, nunca `watchPosition`).
+ */
+function mockGeolocalizacion({ falla = false, coords = { latitude: 19.43, longitude: -99.13, accuracy: 20 } } = {}) {
+  const getCurrentPosition = vi.fn((exito, error) => {
+    if (falla) error({ code: 1 });
+    else exito({ coords });
+  });
+  Object.defineProperty(globalThis.navigator, 'geolocation', {
+    value: { getCurrentPosition },
+    configurable: true,
+  });
+  return getCurrentPosition;
+}
+
 const BANO_CALIFICADO = {
   ...BANO_SIN_CALIFICACION,
   id: '2',
@@ -23,6 +45,10 @@ const BANO_CALIFICADO = {
 };
 
 describe('Detalle', () => {
+  beforeEach(() => {
+    hacerCheckin.mockReset();
+  });
+
   it('sin bano seleccionado no renderiza nada', () => {
     const { container } = render(<Detalle bano={null} onVolver={() => {}} />);
     expect(container).toBeEmptyDOMElement();
@@ -91,5 +117,109 @@ describe('Detalle', () => {
 
     expect(screen.getByText('Plaza Uno')).toBeInTheDocument();
     expect(screen.queryByText(/de ti/)).not.toBeInTheDocument();
+  });
+
+  describe('Chip de rango (Story 3.1)', () => {
+    it('dentro de 150m muestra el chip de "dentro del rango"', () => {
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      expect(screen.getByText(/dentro del rango/i)).toBeInTheDocument();
+    });
+
+    it('fuera de 150m muestra el chip de "fuera del rango", pero el botón sigue habilitado (el chip nunca lo bloquea)', () => {
+      render(<Detalle bano={BANO_SIN_CALIFICACION} onVolver={() => {}} />);
+      expect(screen.getByText(/fuera del rango/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+
+    it('sin distancia conocida no muestra ningún chip', () => {
+      render(<Detalle bano={{ ...BANO_SIN_CALIFICACION, distancia_metros: null }} onVolver={() => {}} />);
+      expect(screen.queryByText(/dentro del rango/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/fuera del rango/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Hacer check-in (Story 3.1)', () => {
+    it('dentro de 150m: check-in exitoso pide una lectura fresca de ubicación y muestra el banner de confirmación', async () => {
+      const usuario = userEvent.setup();
+      const getCurrentPosition = mockGeolocalizacion({ coords: { latitude: 19.5, longitude: -99.2, accuracy: 15 } });
+      hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      expect(getCurrentPosition).toHaveBeenCalled();
+      await screen.findByRole('status');
+      expect(screen.getByRole('status')).toHaveTextContent(/check-in registrado/i);
+      expect(hacerCheckin).toHaveBeenCalledWith({ banoId: BANO_DENTRO_DE_RANGO.id, lat: 19.5, lng: -99.2, accuracy: 15 });
+      expect(screen.queryByRole('button', { name: /hacer check-in/i })).not.toBeInTheDocument();
+    });
+
+    it('fuera de 150m: el backend rechaza con 403 y se explica el motivo, nada se cuelga', async () => {
+      const usuario = userEvent.setup();
+      mockGeolocalizacion();
+      const error = new Error('Estás fuera de rango 📏 — tienes que estar a menos de 150m del baño.');
+      error.status = 403;
+      hacerCheckin.mockRejectedValue(error);
+
+      render(<Detalle bano={BANO_SIN_CALIFICACION} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/fuera de rango/i);
+      // Puede reintentar: el botón sigue ahí y habilitado.
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+
+    it('GPS impreciso (422): mensaje distinto de "fuera de rango", ofrece reintentar en vez de rechazar', async () => {
+      const usuario = userEvent.setup();
+      mockGeolocalizacion({ coords: { latitude: 19.43, longitude: -99.13, accuracy: 150 } });
+      const error = new Error('Tu GPS anda medio perdido 📡 — no podemos confirmar que estés a menos de 150m.');
+      error.status = 422;
+      hacerCheckin.mockRejectedValue(error);
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      const mensaje = await screen.findByRole('alert');
+      expect(mensaje).toHaveTextContent(/gps/i);
+      expect(mensaje).not.toHaveTextContent(/fuera de rango/i);
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+
+    it('bano_id inexistente: rechazo claro (no un 500 genérico crudo) y la pantalla no truena', async () => {
+      const usuario = userEvent.setup();
+      mockGeolocalizacion();
+      const error = new Error('Ese baño ya no existe o no lo encontramos 🚽❓.');
+      error.status = 400;
+      hacerCheckin.mockRejectedValue(error);
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/ya no existe/i);
+    });
+
+    it('POST /checkins falla (red/servidor): mensaje de marca, no deja la UI colgada, se puede reintentar', async () => {
+      const usuario = userEvent.setup();
+      mockGeolocalizacion();
+      hacerCheckin.mockRejectedValue(new Error('No pudimos registrar tu check-in 😬 — intenta de nuevo.'));
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos registrar tu check-in/i);
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+
+    it('falla obtener una lectura fresca de ubicación (permiso revocado o timeout): pide reintentar, no truena la pantalla', async () => {
+      const usuario = userEvent.setup();
+      mockGeolocalizacion({ falla: true });
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos obtener tu ubicación/i);
+      expect(hacerCheckin).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
   });
 });

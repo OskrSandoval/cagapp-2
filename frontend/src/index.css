@@ -247,3 +247,12 @@ body {
 /* Story 2.4: overlay de Crear Baño (mismo .detalle-pantalla/.campo/.mensaje-error/.boton-primario de arriba) */
 .crear-bano-intro { margin: 6px 0 16px; }
 .detalle-contenido .surface-tarjeta .boton-primario { margin-top: 12px; }
+
+/* Story 3.1: Chip de rango + flujo de check-in en Detalle (mismo .surface-tarjeta/.mensaje-error/.boton-primario de arriba) */
+.checkin-tarjeta { margin-top: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.checkin-tarjeta .boton-primario { width: auto; padding: 12px 20px; margin-top: 0; }
+.chip-rango { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.chip-rango--dentro { background: #e6f4eb; color: var(--success); }
+.chip-rango--fuera { background: var(--border); color: var(--warning); }
+.banner-confirmacion { margin: 0; padding: 10px 12px; border-radius: 12px; background: #e6f4eb; color: var(--success); font-weight: 700; font-size: 13px; }
+.mensaje-precision { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 700; }
