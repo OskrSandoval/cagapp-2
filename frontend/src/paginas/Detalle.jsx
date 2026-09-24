@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatearDistancia } from './distancia';
 import { CAPTIONS_CALIFICACION, bandaCalificacion } from './calificacion';
+import { formatearFechaRelativa } from './fechaRelativa';
 import { hacerCheckin } from '../api/checkinsApi';
-import { calificarBano } from '../api/calificacionesApi';
+import { calificarBano, obtenerCalificacionesPublicas } from '../api/calificacionesApi';
 
 const ESTRELLAS_POSIBLES = [1, 2, 3, 4, 5];
 
@@ -42,11 +43,50 @@ export default function Detalle({ bano, onVolver, onCalificado }) {
   // todavía no se ha calificado en esta sesión, usar `bano.calificacion_promedio`.
   const [promedioLocal, setPromedioLocal] = useState(null);
 
+  // "Lo que dice la gente" (Story 4.2): lista pública de calificaciones de
+  // este baño. Se pide una sola vez al abrir, en base al promedio *original*
+  // del `bano` recibido (nunca `promedioLocal`) — Design Notes: esta historia
+  // no refresca la lista justo después de que el propio usuario califique en
+  // esta misma apertura de Detalle, así que calificar aquí nunca dispara un
+  // refetch.
+  const [calificacionesPublicas, setCalificacionesPublicas] = useState([]);
+  const [errorCalificacionesPublicas, setErrorCalificacionesPublicas] = useState('');
+
+  const tieneCalificacionOriginal = typeof bano?.calificacion_promedio === 'number';
+
   // Al abrir el overlay, mover el foco de teclado al botón Volver (sin
   // manejo de Escape, mínimo suficiente para un diálogo modal).
   useEffect(() => {
     volverRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!bano || !tieneCalificacionOriginal) {
+      setCalificacionesPublicas([]);
+      setErrorCalificacionesPublicas('');
+      return undefined;
+    }
+
+    let cancelado = false;
+    setErrorCalificacionesPublicas('');
+
+    obtenerCalificacionesPublicas(bano.id)
+      .then((lista) => {
+        if (!cancelado) setCalificacionesPublicas(Array.isArray(lista) ? lista : []);
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          setErrorCalificacionesPublicas(
+            err?.message || 'No pudimos cargar las calificaciones 😬 — intenta de nuevo.'
+          );
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bano?.id, tieneCalificacionOriginal]);
 
   if (!bano) return null;
 
@@ -298,6 +338,26 @@ export default function Detalle({ bano, onVolver, onCalificado }) {
             </>
           )}
         </div>
+
+        {tieneCalificacionOriginal && (
+          <div className="section-mini">
+            <h4>Lo que dice la gente</h4>
+            {errorCalificacionesPublicas ? (
+              <p className="mensaje-error" role="alert">
+                {errorCalificacionesPublicas}
+              </p>
+            ) : (
+              calificacionesPublicas.map((fila, indice) => (
+                <div className="mini-row" key={`${fila.nombre_para_mostrar}-${fila.created_at}-${indice}`}>
+                  <span>{fila.nombre_para_mostrar}</span>
+                  <span>
+                    {estrellasEstaticas(fila.estrellas)} {formatearFechaRelativa(fila.created_at)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

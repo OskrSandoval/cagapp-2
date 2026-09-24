@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const serviciosMock = vi.hoisted(() => ({
   calificarBano: vi.fn(),
+  obtenerCalificacionesPublicas: vi.fn(),
 }));
 
 vi.mock('../src/servicios/calificacionesService.js', () => serviciosMock);
@@ -27,6 +28,7 @@ describe('POST /calificaciones', () => {
 
   beforeEach(() => {
     serviciosMock.calificarBano.mockReset();
+    serviciosMock.obtenerCalificacionesPublicas.mockReset();
   });
 
   it('rechaza peticiones sin token con 401', async () => {
@@ -97,6 +99,68 @@ describe('POST /calificaciones', () => {
       .post('/calificaciones')
       .set(...auth)
       .send(cuerpoValido);
+    expect(respuesta.status).toBe(500);
+    expect(respuesta.body).toHaveProperty('error');
+  });
+});
+
+describe('GET /calificaciones', () => {
+  const banoId = '11111111-1111-1111-1111-111111111111';
+
+  it('rechaza peticiones sin token con 401', async () => {
+    const respuesta = await request(crearApp()).get('/calificaciones').query({ bano_id: banoId });
+    expect(respuesta.status).toBe(401);
+    expect(serviciosMock.obtenerCalificacionesPublicas).not.toHaveBeenCalled();
+  });
+
+  it('con un bano_id válido responde 200 con la lista pública (sin usuario_id)', async () => {
+    serviciosMock.obtenerCalificacionesPublicas.mockResolvedValue([
+      { nombre_para_mostrar: 'Ana R.', estrellas: 5, created_at: '2026-01-05T00:00:00Z' },
+    ]);
+
+    const respuesta = await request(crearApp())
+      .get('/calificaciones')
+      .query({ bano_id: banoId })
+      .set(...auth);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual([{ nombre_para_mostrar: 'Ana R.', estrellas: 5, created_at: '2026-01-05T00:00:00Z' }]);
+    expect(serviciosMock.obtenerCalificacionesPublicas).toHaveBeenCalledWith(banoId);
+  });
+
+  it('responde 200 con [] si el baño no tiene ninguna calificación vigente', async () => {
+    serviciosMock.obtenerCalificacionesPublicas.mockResolvedValue([]);
+
+    const respuesta = await request(crearApp())
+      .get('/calificaciones')
+      .query({ bano_id: banoId })
+      .set(...auth);
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual([]);
+  });
+
+  it.each([
+    ['bano_id ausente', {}],
+    ['bano_id vacío', { bano_id: '' }],
+    ['bano_id con formato inválido (no uuid)', { bano_id: 'no-es-un-uuid' }],
+  ])('responde 400 claro (no un 500 genérico) si %s, sin llamar al servicio', async (_caso, query) => {
+    const respuesta = await request(crearApp())
+      .get('/calificaciones')
+      .query(query)
+      .set(...auth);
+    expect(respuesta.status).toBe(400);
+    expect(serviciosMock.obtenerCalificacionesPublicas).not.toHaveBeenCalled();
+  });
+
+  it('responde 500 con error en formato AD-7 si el servicio falla (red/servidor) y no deja la petición colgada', async () => {
+    serviciosMock.obtenerCalificacionesPublicas.mockRejectedValue(new Error('boom'));
+
+    const respuesta = await request(crearApp())
+      .get('/calificaciones')
+      .query({ bano_id: banoId })
+      .set(...auth);
+
     expect(respuesta.status).toBe(500);
     expect(respuesta.body).toHaveProperty('error');
   });

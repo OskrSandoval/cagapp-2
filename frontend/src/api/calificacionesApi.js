@@ -64,3 +64,36 @@ export async function calificarBano({ banoId, estrellas }) {
     throw new Error(MENSAJE_FALLBACK);
   }
 }
+
+/**
+ * Story 4.2: trae la lista pública restringida de calificaciones de un baño
+ * (`{ nombre_para_mostrar, estrellas, created_at }`, nunca `usuario_id` —
+ * AD-11) para "Lo que dice la gente" en Detalle. Mismo patrón autenticado
+ * que `calificarBano`, pero GET con `bano_id` en la query.
+ */
+export async function obtenerCalificacionesPublicas(banoId) {
+  const token = await obtenerTokenActual();
+  const MENSAJE_FALLBACK = 'No pudimos revisar las calificaciones de este baño 😬 — intenta de nuevo.';
+
+  let respuesta;
+  try {
+    respuesta = await fetch(`${API_URL}/calificaciones?bano_id=${encodeURIComponent(banoId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error(MENSAJE_FALLBACK);
+  }
+
+  if (!respuesta.ok) {
+    const mensaje = await leerCuerpoError(respuesta);
+    const error = new Error(mensaje || MENSAJE_FALLBACK);
+    error.status = respuesta.status;
+    throw error;
+  }
+
+  try {
+    return await respuesta.json();
+  } catch {
+    throw new Error(MENSAJE_FALLBACK);
+  }
+}

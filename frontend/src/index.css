@@ -279,3 +279,11 @@ body {
 .perfil-fila-sin-calificar { font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
 .perfil-estado-vacio { margin: 6px 0 16px; }
 .perfil-cerrar-sesion { width: auto; padding: 12px 20px; margin-top: 8px; }
+
+/* Story 4.2: "Lo que dice la gente" en Detalle — copy y rol tipográfico
+   `meta` (12.5px/400, muted) tomados literalmente del mockup aprobado
+   (key-detalle-checkin.html, .section-mini/.mini-row). */
+.section-mini { margin-top: 22px; }
+.section-mini h4 { margin: 0 0 8px; font-size: 12.5px; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
+.mini-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.mini-row:last-child { border-bottom: none; }

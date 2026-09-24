@@ -109,6 +109,56 @@ export async function obtenerPromediosPorBano(banoIds, cliente = clientePorDefec
 }
 
 /**
+ * Story 4.2: forma pública restringida de las calificaciones de un baño
+ * (AD-11) — la respuesta nunca incluye `usuario_id` ni ninguna otra forma de
+ * ubicar al usuario. Trae todas las filas de `calificaciones` de `banoId`,
+ * se queda con la vigente de cada usuario reusando
+ * `filtrarVigentesPorUsuarioYBano` (nunca reimplementa esa lógica), cruza
+ * cada una con `perfiles.nombre_para_mostrar` y devuelve
+ * `[{ nombre_para_mostrar, estrellas, created_at }]` ordenadas por
+ * `created_at` descendente (más recientes primero, epic-4-context.md: sin
+ * paginación todavía). Devuelve `[]` si el baño no tiene ninguna
+ * calificación vigente, sin llegar a consultar `perfiles`.
+ */
+export async function obtenerCalificacionesPublicas(banoId, cliente = clientePorDefecto) {
+  const { data, error } = await cliente
+    .from('calificaciones')
+    .select('usuario_id, "baño_id", estrellas, created_at, secuencia')
+    .eq('baño_id', banoId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const vigentes = filtrarVigentesPorUsuarioYBano(data || []);
+
+  if (vigentes.length === 0) {
+    return [];
+  }
+
+  const usuarioIds = [...new Set(vigentes.map((fila) => fila.usuario_id))];
+
+  const { data: perfiles, error: errorPerfiles } = await cliente
+    .from('perfiles')
+    .select('id, nombre_para_mostrar')
+    .in('id', usuarioIds);
+
+  if (errorPerfiles) {
+    throw new Error(errorPerfiles.message);
+  }
+
+  const nombrePorUsuario = new Map((perfiles || []).map((perfil) => [perfil.id, perfil.nombre_para_mostrar]));
+
+  return [...vigentes]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map((fila) => ({
+      nombre_para_mostrar: nombrePorUsuario.get(fila.usuario_id) ?? null,
+      estrellas: fila.estrellas,
+      created_at: fila.created_at,
+    }));
+}
+
+/**
  * Verifica el check-in vigente (backend como única autoridad, ninguna vía
  * puede saltárselo) y, solo si existe, inserta la calificación (AD-3:
  * append-only, jamás UPDATE/DELETE) y recalcula el promedio del baño a

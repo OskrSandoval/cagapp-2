@@ -3,12 +3,16 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
-vi.mock('../src/api/calificacionesApi', () => ({ calificarBano: vi.fn() }));
+vi.mock('../src/api/calificacionesApi', () => ({
+  calificarBano: vi.fn(),
+  obtenerCalificacionesPublicas: vi.fn(),
+}));
 
 const { hacerCheckin } = await import('../src/api/checkinsApi');
-const { calificarBano } = await import('../src/api/calificacionesApi');
+const { calificarBano, obtenerCalificacionesPublicas } = await import('../src/api/calificacionesApi');
 const { default: Detalle } = await import('../src/paginas/Detalle.jsx');
 const { bandaCalificacion, CAPTIONS_CALIFICACION } = await import('../src/paginas/calificacion.js');
+const { formatearFechaRelativa } = await import('../src/paginas/fechaRelativa.js');
 
 const BANO_SIN_CALIFICACION = {
   id: '1',
@@ -50,6 +54,11 @@ describe('Detalle', () => {
   beforeEach(() => {
     hacerCheckin.mockReset();
     calificarBano.mockReset();
+    obtenerCalificacionesPublicas.mockReset();
+    // Default inofensivo: la mayoría de los tests no le importa "Lo que dice
+    // la gente" y solo algunos usan un bano con `calificacion_promedio`
+    // numérico (que dispara el fetch automáticamente al montar).
+    obtenerCalificacionesPublicas.mockResolvedValue([]);
   });
 
   // Deja el Detalle justo tras un check-in exitoso (mismo prerequisito de
@@ -322,6 +331,105 @@ describe('Detalle', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(/check-in ya expiró/i);
       expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
       expect(screen.queryByRole('button', { name: /calificar 5 de 5/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Lo que dice la gente (Story 4.2)', () => {
+    it('con baño calificado, pide la lista pública y la muestra con nombre, estrellas y fecha relativa', async () => {
+      const haceDosDias = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      obtenerCalificacionesPublicas.mockResolvedValue([
+        { nombre_para_mostrar: 'Ana R.', estrellas: 5, created_at: haceDosDias },
+      ]);
+
+      render(<Detalle bano={BANO_CALIFICADO} onVolver={() => {}} />);
+
+      expect(await screen.findByText('Lo que dice la gente')).toBeInTheDocument();
+      expect(screen.getByText('Ana R.')).toBeInTheDocument();
+      expect(screen.getByText(`★★★★★ ${formatearFechaRelativa(haceDosDias)}`)).toBeInTheDocument();
+      expect(obtenerCalificacionesPublicas).toHaveBeenCalledWith(BANO_CALIFICADO.id);
+    });
+
+    it('inspeccionando los datos que recibe/renderiza, ninguna fila trae un identificador interno del usuario ni ubicación', async () => {
+      const filaPublica = { nombre_para_mostrar: 'Ana R.', estrellas: 5, created_at: new Date().toISOString() };
+      obtenerCalificacionesPublicas.mockResolvedValue([filaPublica]);
+
+      render(<Detalle bano={BANO_CALIFICADO} onVolver={() => {}} />);
+      await screen.findByText('Lo que dice la gente');
+
+      expect(filaPublica).not.toHaveProperty('usuario_id');
+      expect(Object.keys(filaPublica).sort()).toEqual(['created_at', 'estrellas', 'nombre_para_mostrar']);
+    });
+
+    it('baño sin calificaciones: no pide la lista pública ni muestra la sección — un solo estado vacío (el badge existente)', () => {
+      render(<Detalle bano={BANO_SIN_CALIFICACION} onVolver={() => {}} />);
+
+      expect(obtenerCalificacionesPublicas).not.toHaveBeenCalled();
+      expect(screen.queryByText('Lo que dice la gente')).not.toBeInTheDocument();
+      expect(screen.getByText(/sin calificaciones todavía/i)).toBeInTheDocument();
+    });
+
+    it('si GET /calificaciones falla (red/servidor), muestra un mensaje de marca en la sección sin dejar el resto del Detalle colgado', async () => {
+      obtenerCalificacionesPublicas.mockRejectedValue(
+        new Error('No pudimos cargar las calificaciones 😬 — intenta de nuevo.')
+      );
+
+      render(<Detalle bano={BANO_CALIFICADO} onVolver={() => {}} />);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos cargar las calificaciones/i);
+      expect(screen.getByText(BANO_CALIFICADO.nombre)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+
+    it('no vuelve a pedir la lista pública justo después de que el propio usuario califique en la misma apertura de Detalle', async () => {
+      const usuario = userEvent.setup();
+      // Ya tiene promedio (la sección se pide/muestra desde el inicio) y está
+      // dentro de rango de check-in, para poder pasar por check-in → calificar
+      // → confirmar en la misma apertura sin que ninguna otra condición oculte
+      // la sección.
+      const banoCalificadoDentroDeRango = { ...BANO_DENTRO_DE_RANGO, calificacion_promedio: 4.5 };
+      mockGeolocalizacion();
+      hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+      calificarBano.mockResolvedValue({ id: 'calificacion-1', calificacion_promedio: 4 });
+
+      render(<Detalle bano={banoCalificadoDentroDeRango} onVolver={() => {}} />);
+      await screen.findByText('Lo que dice la gente');
+      expect(obtenerCalificacionesPublicas).toHaveBeenCalledTimes(1);
+
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+      await screen.findByRole('status');
+      await usuario.click(screen.getByRole('button', { name: 'Calificar 4 de 5' }));
+      await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+      await screen.findByText(/gracias por calificar/i);
+      // El promedio local ya refleja el 4 (Story 3.2), pero "Lo que dice la
+      // gente" no se vuelve a pedir tras el propio voto en esta misma apertura.
+      expect(obtenerCalificacionesPublicas).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Lo que dice la gente')).toBeInTheDocument();
+    });
+  });
+
+  describe('formatearFechaRelativa (Story 4.2)', () => {
+    const DIA_MS = 24 * 60 * 60 * 1000;
+    const haceMs = (ms) => new Date(Date.now() - ms).toISOString();
+
+    it('menos de 7 días: "hace N día(s)"', () => {
+      expect(formatearFechaRelativa(haceMs(1 * DIA_MS))).toBe('hace 1 día');
+      expect(formatearFechaRelativa(haceMs(2 * DIA_MS))).toBe('hace 2 días');
+    });
+
+    it('de 7 a 29 días: "hace N semana(s)"', () => {
+      expect(formatearFechaRelativa(haceMs(7 * DIA_MS))).toBe('hace 1 semana');
+      expect(formatearFechaRelativa(haceMs(14 * DIA_MS))).toBe('hace 2 semanas');
+    });
+
+    it('de 30 a 364 días: "hace N mes(es)"', () => {
+      expect(formatearFechaRelativa(haceMs(30 * DIA_MS))).toBe('hace 1 mes');
+      expect(formatearFechaRelativa(haceMs(60 * DIA_MS))).toBe('hace 2 meses');
+    });
+
+    it('365 días o más: "hace N año(s)"', () => {
+      expect(formatearFechaRelativa(haceMs(365 * DIA_MS))).toBe('hace 1 año');
+      expect(formatearFechaRelativa(haceMs(730 * DIA_MS))).toBe('hace 2 años');
     });
   });
 });

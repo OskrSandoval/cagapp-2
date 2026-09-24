@@ -1,4 +1,4 @@
-import { calificarBano } from '../servicios/calificacionesService.js';
+import { calificarBano, obtenerCalificacionesPublicas } from '../servicios/calificacionesService.js';
 import { esUuidValido } from '../validacion.js';
 
 function leerEnteroDeCuerpo(valor) {
@@ -49,5 +49,33 @@ export async function postCalificacion(req, res) {
     });
   } catch {
     return res.status(500).json({ error: 'No pudimos guardar tu calificación 😬 — intenta de nuevo.' });
+  }
+}
+
+/**
+ * Story 4.2: `getCalificacionesPublicas` valida `bano_id` (query, uuid vía
+ * `esUuidValido`, mismo criterio que `postCalificacion`/`checkinsController`)
+ * y responde 200 con la lista pública restringida (AD-11), vacía si el baño
+ * todavía no tiene ninguna. Nunca 500 genérico por un uuid con formato
+ * inválido.
+ */
+export async function getCalificacionesPublicas(req, res) {
+  const banoId = typeof req.query?.bano_id === 'string' ? req.query.bano_id.trim() : '';
+
+  if (!banoId) {
+    return res.status(400).json({ error: 'Necesitamos saber de qué baño hablamos 🚽.' });
+  }
+
+  if (!esUuidValido(banoId)) {
+    return res.status(400).json({ error: 'Ese id de baño no cuadra 🧐 — intenta de nuevo.' });
+  }
+
+  try {
+    const calificaciones = await obtenerCalificacionesPublicas(banoId);
+    return res.status(200).json(calificaciones);
+  } catch {
+    return res
+      .status(500)
+      .json({ error: 'No pudimos revisar las calificaciones de este baño 😬 — intenta de nuevo.' });
   }
 }

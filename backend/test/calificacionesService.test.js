@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calificarBano,
   filtrarVigentesPorUsuarioYBano,
+  obtenerCalificacionesPublicas,
   obtenerCheckinVigente,
   obtenerPromediosPorBano,
 } from '../src/servicios/calificacionesService.js';
@@ -274,5 +275,118 @@ describe('calificarBano', () => {
     await expect(calificarBano({ usuarioId: 'user-1', banoId: 'bano-1', estrellas: 3 }, cliente)).rejects.toThrow(
       'boom'
     );
+  });
+});
+
+// Cliente Supabase falso que cubre las dos tablas que toca
+// `obtenerCalificacionesPublicas` (`calificaciones`, `perfiles`), cada una
+// resuelta con `then` como el resto de los fakes de este archivo.
+function crearClientePublicas({
+  calificaciones = [],
+  perfiles = [],
+  errorCalificaciones = null,
+  errorPerfiles = null,
+} = {}) {
+  const llamadas = { eqCalificaciones: [], inPerfiles: [] };
+
+  return {
+    llamadas,
+    from(tabla) {
+      if (tabla === 'calificaciones') {
+        const consulta = {
+          select() {
+            return consulta;
+          },
+          eq(campo, valor) {
+            llamadas.eqCalificaciones.push([campo, valor]);
+            return consulta;
+          },
+          then(resolver, rechazar) {
+            return Promise.resolve(
+              errorCalificaciones ? { data: null, error: errorCalificaciones } : { data: calificaciones, error: null }
+            ).then(resolver, rechazar);
+          },
+        };
+        return consulta;
+      }
+
+      if (tabla === 'perfiles') {
+        const consulta = {
+          select() {
+            return consulta;
+          },
+          in(campo, valores) {
+            llamadas.inPerfiles.push([campo, valores]);
+            return consulta;
+          },
+          then(resolver, rechazar) {
+            return Promise.resolve(
+              errorPerfiles ? { data: null, error: errorPerfiles } : { data: perfiles, error: null }
+            ).then(resolver, rechazar);
+          },
+        };
+        return consulta;
+      }
+
+      throw new Error(`tabla inesperada: ${tabla}`);
+    },
+  };
+}
+
+describe('obtenerCalificacionesPublicas', () => {
+  it('sin calificaciones para el baño devuelve [] sin consultar perfiles', async () => {
+    const cliente = crearClientePublicas({ calificaciones: [] });
+    expect(await obtenerCalificacionesPublicas('bano-1', cliente)).toEqual([]);
+    expect(cliente.llamadas.inPerfiles).toHaveLength(0);
+  });
+
+  it('filtra por bano_id y devuelve solo la fila vigente de cada usuario, cruzada con nombre_para_mostrar, más recientes primero', async () => {
+    const filas = [
+      { usuario_id: 'u1', 'baño_id': 'bano-1', estrellas: 2, created_at: '2026-01-01T00:00:00Z', secuencia: 1 },
+      { usuario_id: 'u1', 'baño_id': 'bano-1', estrellas: 5, created_at: '2026-01-05T00:00:00Z', secuencia: 2 },
+      { usuario_id: 'u2', 'baño_id': 'bano-1', estrellas: 3, created_at: '2026-01-03T00:00:00Z', secuencia: 1 },
+    ];
+    const perfiles = [
+      { id: 'u1', nombre_para_mostrar: 'Ana R.' },
+      { id: 'u2', nombre_para_mostrar: 'Mario T.' },
+    ];
+    const cliente = crearClientePublicas({ calificaciones: filas, perfiles });
+
+    const resultado = await obtenerCalificacionesPublicas('bano-1', cliente);
+
+    expect(resultado).toEqual([
+      { nombre_para_mostrar: 'Ana R.', estrellas: 5, created_at: '2026-01-05T00:00:00Z' },
+      { nombre_para_mostrar: 'Mario T.', estrellas: 3, created_at: '2026-01-03T00:00:00Z' },
+    ]);
+    expect(cliente.llamadas.eqCalificaciones).toEqual([['baño_id', 'bano-1']]);
+    expect(cliente.llamadas.inPerfiles).toEqual([['id', ['u1', 'u2']]]);
+  });
+
+  it('nunca incluye usuario_id (ni ningún otro campo) en las filas de la lista pública (AD-11)', async () => {
+    const filas = [
+      { usuario_id: 'u1', 'baño_id': 'bano-1', estrellas: 4, created_at: '2026-01-01T00:00:00Z', secuencia: 1 },
+    ];
+    const perfiles = [{ id: 'u1', nombre_para_mostrar: 'Ana R.' }];
+    const cliente = crearClientePublicas({ calificaciones: filas, perfiles });
+
+    const resultado = await obtenerCalificacionesPublicas('bano-1', cliente);
+
+    resultado.forEach((fila) => {
+      expect(fila).not.toHaveProperty('usuario_id');
+      expect(Object.keys(fila).sort()).toEqual(['created_at', 'estrellas', 'nombre_para_mostrar']);
+    });
+  });
+
+  it('propaga un error legible si falla la consulta de calificaciones', async () => {
+    const cliente = crearClientePublicas({ errorCalificaciones: { message: 'boom' } });
+    await expect(obtenerCalificacionesPublicas('bano-1', cliente)).rejects.toThrow('boom');
+  });
+
+  it('propaga un error legible si falla la consulta de perfiles', async () => {
+    const filas = [
+      { usuario_id: 'u1', 'baño_id': 'bano-1', estrellas: 4, created_at: '2026-01-01T00:00:00Z', secuencia: 1 },
+    ];
+    const cliente = crearClientePublicas({ calificaciones: filas, errorPerfiles: { message: 'boom' } });
+    await expect(obtenerCalificacionesPublicas('bano-1', cliente)).rejects.toThrow('boom');
   });
 });
