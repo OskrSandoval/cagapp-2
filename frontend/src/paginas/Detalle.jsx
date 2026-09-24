@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { formatearDistancia } from './distancia';
 import { CAPTIONS_CALIFICACION, bandaCalificacion } from './calificacion';
 import { hacerCheckin } from '../api/checkinsApi';
+import { calificarBano } from '../api/calificacionesApi';
+
+const ESTRELLAS_POSIBLES = [1, 2, 3, 4, 5];
 
 // AD-8: mismo radio de 150m que valida el backend; el chip es solo
 // informativo (usa `distancia_metros` que el `bano` ya trae, sin recalcular
@@ -19,13 +22,25 @@ function estrellasEstaticas(banda) {
  * que el toggle de Lista en 2.2). Recibe el objeto `bano` ya en memoria (los
  * mismos campos que `GET /banos` desde 2.1) — nunca pide un baño por id.
  */
-export default function Detalle({ bano, onVolver }) {
+export default function Detalle({ bano, onVolver, onCalificado }) {
   const volverRef = useRef(null);
 
-  // 'confirmado' | 'fuera_de_rango' | 'precision_insuficiente' | 'error' | null
+  // 'confirmado' | 'fuera_de_rango' | 'precision_insuficiente' | 'checkin_expirado' | 'error' | null
   const [estadoCheckin, setEstadoCheckin] = useState(null);
   const [mensajeCheckin, setMensajeCheckin] = useState('');
   const [enviandoCheckin, setEnviandoCheckin] = useState(false);
+
+  // Selector de calificación (Story 3.2): solo existe mientras
+  // `estadoCheckin === 'confirmado'` en esta misma apertura de Detalle — ver
+  // Design Notes ("El Selector no persiste entre aperturas de Detalle").
+  const [estrellasSeleccionadas, setEstrellasSeleccionadas] = useState(0);
+  const [enviandoCalificacion, setEnviandoCalificacion] = useState(false);
+  const [mensajeCalificacion, setMensajeCalificacion] = useState('');
+  const [calificacionEnviada, setCalificacionEnviada] = useState(false);
+  // Override local del promedio para reflejarlo "de inmediato" (criterio de
+  // aceptación) sin esperar a que Mapa.jsx vuelva a pedir `banos`. `null` =
+  // todavía no se ha calificado en esta sesión, usar `bano.calificacion_promedio`.
+  const [promedioLocal, setPromedioLocal] = useState(null);
 
   // Al abrir el overlay, mover el foco de teclado al botón Volver (sin
   // manejo de Escape, mínimo suficiente para un diálogo modal).
@@ -35,7 +50,7 @@ export default function Detalle({ bano, onVolver }) {
 
   if (!bano) return null;
 
-  const promedio = bano.calificacion_promedio;
+  const promedio = promedioLocal !== null ? promedioLocal : bano.calificacion_promedio;
   const tieneCalificacion = typeof promedio === 'number';
   const banda = tieneCalificacion ? bandaCalificacion(promedio) : null;
   const distancia = formatearDistancia(bano.distancia_metros);
@@ -52,6 +67,12 @@ export default function Detalle({ bano, onVolver }) {
     if (enviandoCheckin) return;
     setMensajeCheckin('');
     setEstadoCheckin(null);
+    // Cada check-in nuevo abre un ciclo de calificación fresco (permitido sin
+    // límite, Story 3.1) — nunca arrastra el estado del selector de la vez
+    // anterior en la misma apertura de Detalle.
+    setEstrellasSeleccionadas(0);
+    setMensajeCalificacion('');
+    setCalificacionEnviada(false);
 
     if (!navigator.geolocation) {
       setEstadoCheckin('error');
@@ -95,6 +116,39 @@ export default function Detalle({ bano, onVolver }) {
       // "fuera de rango"/"precisión insuficiente".
       { timeout: 10000, enableHighAccuracy: true }
     );
+  }
+
+  // Publica la calificación elegida (Story 3.2). El backend es la única
+  // autoridad sobre "hay un check-in vigente" (ventana de 15 min) — un 403
+  // aquí significa que expiró mientras el usuario decidía, y el frontend
+  // regresa al flujo de "Hacer check-in" en vez de dejar el selector colgado
+  // (I/O & Edge-Case Matrix de la spec), nunca lo trata como un error genérico.
+  async function confirmarCalificacion() {
+    if (enviandoCalificacion || estrellasSeleccionadas === 0) return;
+    setMensajeCalificacion('');
+    setEnviandoCalificacion(true);
+
+    try {
+      const resultado = await calificarBano({ banoId: bano.id, estrellas: estrellasSeleccionadas });
+      setCalificacionEnviada(true);
+      setPromedioLocal(
+        typeof resultado?.calificacion_promedio === 'number' ? resultado.calificacion_promedio : estrellasSeleccionadas
+      );
+      onCalificado?.();
+    } catch (err) {
+      if (err?.status === 403) {
+        setEstadoCheckin('checkin_expirado');
+        setMensajeCheckin(
+          err?.message || 'Tu check-in ya expiró ⏱️ — vuelve a hacer check-in para poder calificar.'
+        );
+      } else {
+        // La estrella elegida no se pierde: se puede reintentar sin volver a
+        // elegir (I/O & Edge-Case Matrix de la spec).
+        setMensajeCalificacion(err?.message || 'No pudimos guardar tu calificación 😬 — intenta de nuevo.');
+      }
+    } finally {
+      setEnviandoCalificacion(false);
+    }
   }
 
   return (
@@ -160,12 +214,73 @@ export default function Detalle({ bano, onVolver }) {
           )}
 
           {estadoCheckin === 'confirmado' ? (
-            <p className="banner-confirmacion" role="status">
-              ¡Check-in registrado! Ya quedaste como testigo presencial 🕵️.
-            </p>
+            <>
+              <p className="banner-confirmacion" role="status">
+                ¡Check-in registrado! Ya quedaste como testigo presencial 🕵️.
+              </p>
+
+              {calificacionEnviada ? (
+                <p className="banner-confirmacion" role="status">
+                  ¡Gracias por calificar! Tu voto ya cuenta 🌟.
+                </p>
+              ) : (
+                <div className="calificacion-selector">
+                  <div className="calificacion-estrellas-fila">
+                    {ESTRELLAS_POSIBLES.map((valor) => (
+                      <button
+                        key={valor}
+                        type="button"
+                        className={`calificacion-estrella-boton${
+                          valor <= estrellasSeleccionadas ? ' calificacion-estrella-boton--activa' : ''
+                        }`}
+                        aria-label={`Calificar ${valor} de 5`}
+                        aria-pressed={valor <= estrellasSeleccionadas}
+                        onClick={() => setEstrellasSeleccionadas(valor)}
+                      >
+                        {valor <= estrellasSeleccionadas ? '★' : '☆'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {estrellasSeleccionadas > 0 && (
+                    <p className="calificacion-caption-pill">{CAPTIONS_CALIFICACION[estrellasSeleccionadas]}</p>
+                  )}
+
+                  <ul className="calificacion-lista-referencia">
+                    {ESTRELLAS_POSIBLES.map((valor) => (
+                      <li
+                        key={valor}
+                        className={`calificacion-lista-fila${
+                          valor === estrellasSeleccionadas ? ' calificacion-lista-fila--seleccionada' : ''
+                        }`}
+                      >
+                        {valor} — {CAPTIONS_CALIFICACION[valor]}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {mensajeCalificacion && (
+                    <p className="mensaje-error" role="alert">
+                      {mensajeCalificacion}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    className="boton-primario"
+                    onClick={confirmarCalificacion}
+                    disabled={estrellasSeleccionadas === 0 || enviandoCalificacion}
+                  >
+                    {enviandoCalificacion ? 'Enviando…' : 'Confirmar calificación'}
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <>
-              {(estadoCheckin === 'fuera_de_rango' || estadoCheckin === 'error') && (
+              {(estadoCheckin === 'fuera_de_rango' ||
+                estadoCheckin === 'error' ||
+                estadoCheckin === 'checkin_expirado') && (
                 <p className="mensaje-error" role="alert">
                   {mensajeCheckin}
                 </p>

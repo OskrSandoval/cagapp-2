@@ -256,3 +256,13 @@ body {
 .chip-rango--fuera { background: var(--border); color: var(--warning); }
 .banner-confirmacion { margin: 0; padding: 10px 12px; border-radius: 12px; background: #e6f4eb; color: var(--success); font-weight: 700; font-size: 13px; }
 .mensaje-precision { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 700; }
+
+/* Story 3.2: Selector de calificación en Detalle, tras check-in confirmado */
+.calificacion-selector { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.calificacion-estrellas-fila { display: flex; gap: 2px; margin-left: -6px; }
+.calificacion-estrella-boton { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: none; background: none; font-size: 34px; line-height: 1; color: var(--border); cursor: pointer; }
+.calificacion-estrella-boton--activa { color: var(--primary); }
+.calificacion-caption-pill { margin: 0; font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.calificacion-lista-referencia { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.calificacion-lista-fila { font-size: 12px; color: var(--muted); padding: 5px 9px; border-radius: 8px; }
+.calificacion-lista-fila--seleccionada { background: var(--surface); color: var(--text); font-weight: 800; }

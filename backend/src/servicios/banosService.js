@@ -1,4 +1,5 @@
 import { supabaseAdmin as clientePorDefecto } from '../datos/supabaseAdmin.js';
+import { obtenerPromediosPorBano } from './calificacionesService.js';
 
 const RADIO_TIERRA_METROS = 6371000;
 const aRadianes = (grados) => (grados * Math.PI) / 180;
@@ -24,7 +25,9 @@ function escaparComodines(texto) {
 /**
  * Devuelve todos los baños (sin paginación, diferido por el epic). Con `zona`
  * filtra por ILIKE; con `lat`/`lng` agrega `distancia_metros` y ordena por
- * cercanía. `calificacion_promedio` es null hasta que exista la Épica 3.
+ * cercanía. `calificacion_promedio` (Story 3.2) sale de
+ * `calificacionesService#obtenerPromediosPorBano` — nunca cacheado, siempre
+ * recalculado a partir de las filas vigentes de `calificaciones`.
  */
 export async function listarBanos({ lat, lng, zona } = {}, cliente = clientePorDefecto) {
   let consulta = cliente.from('baños').select('*');
@@ -39,11 +42,17 @@ export async function listarBanos({ lat, lng, zona } = {}, cliente = clientePorD
     throw new Error(error.message);
   }
 
+  const filas = data || [];
+  const promedios = await obtenerPromediosPorBano(
+    filas.map((bano) => bano.id),
+    cliente
+  );
+
   const conUbicacion = typeof lat === 'number' && typeof lng === 'number';
 
-  const banos = (data || []).map((bano) => ({
+  const banos = filas.map((bano) => ({
     ...bano,
-    calificacion_promedio: null,
+    calificacion_promedio: promedios[bano.id] ?? null,
     distancia_metros: conUbicacion ? calcularDistanciaMetros({ lat, lng }, { lat: bano.lat, lng: bano.lng }) : null,
   }));
 

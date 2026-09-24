@@ -3,6 +3,7 @@ import cors from 'cors';
 import perfilesRouter from './rutas/perfiles.js';
 import banosRouter from './rutas/banos.js';
 import checkinsRouter from './rutas/checkins.js';
+import calificacionesRouter from './rutas/calificaciones.js';
 
 // Separado de index.js para poder montar la app en tests (supertest) sin
 // levantar un servidor real ni depender de un PORT libre.
@@ -28,6 +29,7 @@ export function crearApp() {
   app.use('/perfiles', perfilesRouter);
   app.use('/banos', banosRouter);
   app.use('/checkins', checkinsRouter);
+  app.use('/calificaciones', calificacionesRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Esa ruta no existe por aquí 🧭' });

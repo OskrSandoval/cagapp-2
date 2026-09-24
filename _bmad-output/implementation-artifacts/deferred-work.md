@@ -35,3 +35,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-hacer-check-in-en-un-baño.md`
   summary: "Controles operacionales pendientes en todo el backend, no solo en `checkins`: ningún endpoint autenticado tiene rate limiting, los `catch` genéricos no loguean el error real (mismo patrón ya usado en `perfiles`/`banos`), ninguna prueba automatizada verifica que las tablas con RLS sigan sin políticas públicas, y la tabla `checkins` no tiene índices en sus columnas FK (`usuario_id`/`baño_id`) para cuando Story 3.2 empiece a leerla."
   evidence: Verificado como real por el blind-hunter; ninguno es una regresión de esta historia (rate limiting y logging ya faltan en todos los controladores existentes desde la Épica 1) ni bloquea la corrección de 3.1 (la tabla es solo-insert hoy, sin patrón de lectura todavía que justifique un índice específico).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-calificar-un-baño-tras-el-check-in.md`
+  summary: "`calificaciones.usuario_id` usa `on delete cascade` hacia `perfiles`: si alguna vez existiera borrado de cuenta, borraría en silencio todo el historial de calificaciones de ese usuario, contradiciendo la garantía de append-only/auditoría de AD-3."
+  evidence: Verificado como real por el blind-hunter, pero es el mismo patrón de FK ya usado en `baños.creado_por` y `checkins.usuario_id` desde las Épicas 2 y 3.1 — no es una regresión de esta historia, y hoy no existe ninguna funcionalidad de borrado de cuenta que lo dispare.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-calificar-un-baño-tras-el-check-in.md`
+  summary: "`obtenerPromediosPorBano` trae todo el historial de `calificaciones` de los baños pedidos en cada `GET /banos` y promedia en Node, sin límite — a escala, esto crece sin control por ser append-only con recalificación ilimitada."
+  evidence: Verificado como real por el blind-hunter; misma categoría que el truncado por `max-rows` ya diferido desde la Story 2.1 (`GET /banos` sin paginación) — el epic difiere explícitamente optimizar a esta escala.

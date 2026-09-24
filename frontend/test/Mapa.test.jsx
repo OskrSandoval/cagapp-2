@@ -33,8 +33,12 @@ const leaflet = vi.hoisted(() => {
 vi.mock('leaflet', () => ({ default: leaflet.default }));
 vi.mock('leaflet/dist/leaflet.css', () => ({}));
 vi.mock('../src/api/banosApi', () => ({ obtenerBanosCercanos: vi.fn(), crearBano: vi.fn() }));
+vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
+vi.mock('../src/api/calificacionesApi', () => ({ calificarBano: vi.fn() }));
 
 const { obtenerBanosCercanos, crearBano } = await import('../src/api/banosApi');
+const { hacerCheckin } = await import('../src/api/checkinsApi');
+const { calificarBano } = await import('../src/api/calificacionesApi');
 const { default: Mapa } = await import('../src/paginas/Mapa.jsx');
 const { etiquetaPin, nivelCalificacion } = await import('../src/paginas/pinMapa.js');
 
@@ -88,6 +92,8 @@ describe('Mapa', () => {
   beforeEach(() => {
     obtenerBanosCercanos.mockReset();
     crearBano.mockReset();
+    hacerCheckin.mockReset();
+    calificarBano.mockReset();
     leaflet.default.marker.mockClear();
     leaflet.default.divIcon.mockClear();
     leaflet.default.tileLayer.mockClear();
@@ -361,6 +367,37 @@ describe('Mapa', () => {
 
     expect(getCurrentPosition).toHaveBeenCalled();
     await vi.waitFor(() => expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument());
+  });
+
+  it('calificar con éxito tras el check-in refresca banos (Story 3.2, mismo patrón que onCreado de 2.4)', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+    calificarBano.mockResolvedValue({ id: 'calificacion-1', calificacion_promedio: 5 });
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.marcador.on).toHaveBeenCalledWith('click', expect.any(Function)));
+
+    const manejadorClick = leaflet.marcador.on.mock.calls[0][1];
+    act(() => manejadorClick());
+
+    expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(1));
+
+    globalThis.navigator.geolocation.getCurrentPosition = vi.fn((exito) =>
+      exito({ coords: { latitude: 19.4326, longitude: -99.1332, accuracy: 10 } })
+    );
+
+    await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+    await screen.findByRole('status');
+
+    await usuario.click(screen.getByRole('button', { name: /calificar 5 de 5/i }));
+    await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+    await screen.findByText(/gracias por calificar/i);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
+    expect(obtenerBanosCercanos).toHaveBeenLastCalledWith({ lat: 19.4326, lng: -99.1332 });
   });
 
   it('limpia watchPosition con clearWatch al desmontar', async () => {

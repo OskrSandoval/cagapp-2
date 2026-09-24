@@ -1,15 +1,11 @@
 import { crearCheckin } from '../servicios/checkinsService.js';
+import { esUuidValido } from '../validacion.js';
 
 function leerNumeroDeCuerpo(valor) {
   if (typeof valor === 'number') return valor;
   if (typeof valor === 'string' && valor.trim() !== '') return Number(valor);
   return NaN;
 }
-
-// `baño_id`/`id` son uuid en la base — un valor con formato inválido nunca
-// llega a existir, pero dejar que la validación de sintaxis de Postgres lo
-// rechace convertiría esto en un 500 genérico en vez de un 400 claro.
-const PATRON_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Copy chusca (Design Notes de la spec 3.1): no hay mockup para estos
 // mensajes, se autoran en el mismo tono ya establecido en el resto de la
@@ -38,7 +34,7 @@ export async function postCheckin(req, res) {
     return res.status(400).json({ error: 'Necesitamos saber de qué baño hablamos 🚽.' });
   }
 
-  if (!PATRON_UUID.test(banoId)) {
+  if (!esUuidValido(banoId)) {
     return res.status(400).json({ error: 'Ese id de baño no cuadra 🧐 — intenta de nuevo.' });
   }
 

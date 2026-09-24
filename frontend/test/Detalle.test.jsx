@@ -3,8 +3,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
+vi.mock('../src/api/calificacionesApi', () => ({ calificarBano: vi.fn() }));
 
 const { hacerCheckin } = await import('../src/api/checkinsApi');
+const { calificarBano } = await import('../src/api/calificacionesApi');
 const { default: Detalle } = await import('../src/paginas/Detalle.jsx');
 const { bandaCalificacion, CAPTIONS_CALIFICACION } = await import('../src/paginas/calificacion.js');
 
@@ -47,7 +49,20 @@ const BANO_CALIFICADO = {
 describe('Detalle', () => {
   beforeEach(() => {
     hacerCheckin.mockReset();
+    calificarBano.mockReset();
   });
+
+  // Deja el Detalle justo tras un check-in exitoso (mismo prerequisito de
+  // Story 3.1 que la spec 3.2 exige antes de que exista el Selector).
+  async function llegarAConfirmado({ usuario } = {}) {
+    const u = usuario ?? userEvent.setup();
+    mockGeolocalizacion();
+    hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+    render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} onCalificado={() => {}} />);
+    await u.click(screen.getByRole('button', { name: /hacer check-in/i }));
+    await screen.findByRole('status');
+    return u;
+  }
 
   it('sin bano seleccionado no renderiza nada', () => {
     const { container } = render(<Detalle bano={null} onVolver={() => {}} />);
@@ -220,6 +235,93 @@ describe('Detalle', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos obtener tu ubicación/i);
       expect(hacerCheckin).not.toHaveBeenCalled();
       expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+    });
+  });
+
+  describe('Selector de calificación (Story 3.2)', () => {
+    it('nunca aparece antes de un check-in exitoso en esta misma vista', () => {
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} />);
+      expect(screen.queryByRole('button', { name: /calificar 1 de 5/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/confirmar calificación/i)).not.toBeInTheDocument();
+    });
+
+    it('tras check-in exitoso se desbloquea con 5 estrellas etiquetadas', async () => {
+      await llegarAConfirmado();
+      for (let n = 1; n <= 5; n += 1) {
+        expect(screen.getByRole('button', { name: `Calificar ${n} de 5` })).toBeInTheDocument();
+      }
+      expect(screen.getByRole('button', { name: /confirmar calificación/i })).toBeDisabled();
+    });
+
+    it('tocar cada estrella muestra en vivo la caption chusca correspondiente, antes de confirmar', async () => {
+      const usuario = await llegarAConfirmado();
+
+      for (let n = 1; n <= 5; n += 1) {
+        await usuario.click(screen.getByRole('button', { name: `Calificar ${n} de 5` }));
+        expect(screen.getByText(CAPTIONS_CALIFICACION[n])).toBeInTheDocument();
+      }
+      expect(calificarBano).not.toHaveBeenCalled();
+    });
+
+    it('la lista de referencia muestra las 5 captions y resalta la fila seleccionada', async () => {
+      const usuario = await llegarAConfirmado();
+
+      await usuario.click(screen.getByRole('button', { name: 'Calificar 3 de 5' }));
+
+      const items = screen.getAllByRole('listitem');
+      expect(items).toHaveLength(5);
+      items.forEach((item, indice) => {
+        expect(item).toHaveTextContent(CAPTIONS_CALIFICACION[indice + 1]);
+      });
+      expect(items[2].className).toContain('calificacion-lista-fila--seleccionada');
+      expect(items[0].className).not.toContain('calificacion-lista-fila--seleccionada');
+    });
+
+    it('confirmar publica la calificación, actualiza el promedio de inmediato y avisa a onCalificado', async () => {
+      const onCalificado = vi.fn();
+      const usuario = userEvent.setup();
+      mockGeolocalizacion();
+      hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+      calificarBano.mockResolvedValue({ id: 'calificacion-1', calificacion_promedio: 4 });
+
+      render(<Detalle bano={BANO_DENTRO_DE_RANGO} onVolver={() => {}} onCalificado={onCalificado} />);
+      await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+      await screen.findByRole('status');
+
+      await usuario.click(screen.getByRole('button', { name: 'Calificar 4 de 5' }));
+      await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+      expect(calificarBano).toHaveBeenCalledWith({ banoId: BANO_DENTRO_DE_RANGO.id, estrellas: 4 });
+      expect(await screen.findByText(/gracias por calificar/i)).toBeInTheDocument();
+      expect(screen.getByText(/4\.0 ⭐ — 🙂 Bien limpio, sin drama/)).toBeInTheDocument();
+      expect(onCalificado).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('button', { name: /confirmar calificación/i })).not.toBeInTheDocument();
+    });
+
+    it('POST /calificaciones falla (red/servidor): mensaje de marca, la estrella elegida no se pierde, se puede reintentar', async () => {
+      const usuario = await llegarAConfirmado();
+      calificarBano.mockRejectedValue(new Error('No pudimos guardar tu calificación 😬 — intenta de nuevo.'));
+
+      await usuario.click(screen.getByRole('button', { name: 'Calificar 2 de 5' }));
+      await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos guardar tu calificación/i);
+      expect(screen.getByRole('button', { name: 'Calificar 2 de 5' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: /confirmar calificación/i })).toBeEnabled();
+    });
+
+    it('el check-in vigente expira mientras se decide (403): regresa al flujo de "Hacer check-in", no deja el selector colgado', async () => {
+      const usuario = await llegarAConfirmado();
+      const error = new Error('Tu check-in ya expiró ⏱️ — vuelve a hacer check-in para poder calificar.');
+      error.status = 403;
+      calificarBano.mockRejectedValue(error);
+
+      await usuario.click(screen.getByRole('button', { name: 'Calificar 5 de 5' }));
+      await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/check-in ya expiró/i);
+      expect(screen.getByRole('button', { name: /hacer check-in/i })).toBeEnabled();
+      expect(screen.queryByRole('button', { name: /calificar 5 de 5/i })).not.toBeInTheDocument();
     });
   });
 });

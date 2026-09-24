@@ -261,7 +261,18 @@ export default function Mapa({ onCerrarSesion }) {
       </button>
 
       {banoSeleccionado && (
-        <Detalle bano={banoSeleccionado} onVolver={() => setBanoSeleccionado(null)} />
+        <Detalle
+          bano={banoSeleccionado}
+          onVolver={() => setBanoSeleccionado(null)}
+          onCalificado={() => {
+            // Mismo patrón que `onCreado` de Story 2.4: refresca `banos` para
+            // que el pin/lista reflejen el promedio recién recalculado. En
+            // modo zona (geolocalización denegada) no hay `ubicacion` — cae
+            // al mismo buscador por zona ya usado en `buscarPorZona`.
+            if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
+            else if (textoZona) cargarBanos({ zona: textoZona });
+          }}
+        />
       )}
 
       {mostrandoCrearBano && (

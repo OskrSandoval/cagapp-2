@@ -1,12 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { calcularDistanciaMetros, crearBano, listarBanos } from '../src/servicios/banosService.js';
 
-function crearClienteFalso({ filas = [], error = null, errorInsert = null } = {}) {
-  const llamadas = { ilike: [], insert: [] };
+// `calificaciones` (Story 3.2) son las filas ya existentes que
+// `obtenerPromediosPorBano` (calificacionesService.js) va a leer para
+// calcular `calificacion_promedio` — nunca un valor fijo.
+function crearClienteFalso({ filas = [], calificaciones = [], error = null, errorInsert = null } = {}) {
+  const llamadas = { ilike: [], insert: [], in: [] };
   return {
     llamadas,
     from(tabla) {
       llamadas.tabla = tabla;
+
+      if (tabla === 'calificaciones') {
+        const consulta = {
+          select() {
+            return consulta;
+          },
+          in(campo, valores) {
+            llamadas.in.push([campo, valores]);
+            return consulta;
+          },
+          then(resolver, rechazar) {
+            return Promise.resolve({ data: calificaciones, error: null }).then(resolver, rechazar);
+          },
+        };
+        return consulta;
+      }
+
       let resultado = filas;
       const consulta = {
         select() {
@@ -70,13 +90,31 @@ describe('listarBanos', () => {
     { id: '2', nombre: 'Cerca', lat: 19.4327, lng: -99.1333, tipo_lugar: 'plaza', zona: 'Centro' },
   ];
 
-  it('agrega distancia, ordena por cercanía y marca sin calificaciones', async () => {
+  it('agrega distancia, ordena por cercanía y sin filas de calificaciones el promedio es null (nunca 0)', async () => {
     const cliente = crearClienteFalso({ filas });
     const banos = await listarBanos({ lat: 19.4326, lng: -99.1332 }, cliente);
-    expect(cliente.llamadas.tabla).toBe('baños');
+    expect(cliente.llamadas.tabla).toBe('calificaciones'); // última tabla consultada
     expect(banos.map((b) => b.id)).toEqual(['2', '1']);
     expect(banos[0].distancia_metros).toBeLessThan(banos[1].distancia_metros);
     expect(banos[0].calificacion_promedio).toBeNull();
+    expect(banos[1].calificacion_promedio).toBeNull();
+  });
+
+  it('calcula el promedio real (Story 3.2) a partir de la fila vigente por usuario, nunca cacheado ni fijo en null', async () => {
+    const calificaciones = [
+      // '1' (Lejos): dos filas del mismo usuario — solo la más reciente cuenta.
+      { usuario_id: 'u1', 'baño_id': '1', estrellas: 1, created_at: '2026-01-01T00:00:00Z', secuencia: 1 },
+      { usuario_id: 'u1', 'baño_id': '1', estrellas: 5, created_at: '2026-01-02T00:00:00Z', secuencia: 2 },
+      // '2' (Cerca): sin ninguna calificación.
+    ];
+    const cliente = crearClienteFalso({ filas, calificaciones });
+    const banos = await listarBanos({ lat: 19.4326, lng: -99.1332 }, cliente);
+
+    const lejos = banos.find((b) => b.id === '1');
+    const cerca = banos.find((b) => b.id === '2');
+    expect(lejos.calificacion_promedio).toBe(5);
+    expect(cerca.calificacion_promedio).toBeNull();
+    expect(cliente.llamadas.in).toEqual([['baño_id', ['1', '2']]]);
   });
 
   it('filtra por zona con ILIKE y escapa comodines', async () => {
