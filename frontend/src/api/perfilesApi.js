@@ -66,3 +66,23 @@ export async function obtenerMiPerfil() {
 
   return respuesta.json();
 }
+
+/**
+ * Devuelve la actividad propia (baños en los que hice check-in + mi
+ * calificación vigente en cada uno) del usuario autenticado — mismo patrón
+ * que `obtenerMiPerfil`. Nunca hay parámetros: el backend siempre resuelve
+ * el usuario desde el JWT.
+ */
+export async function obtenerMiActividad() {
+  const token = await obtenerTokenActual();
+  const respuesta = await fetch(`${API_URL}/perfiles/yo/actividad`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!respuesta.ok) {
+    const error = await leerCuerpoError(respuesta);
+    throw new Error(error || 'No pudimos revisar tu actividad 😬 — intenta de nuevo.');
+  }
+
+  return respuesta.json();
+}

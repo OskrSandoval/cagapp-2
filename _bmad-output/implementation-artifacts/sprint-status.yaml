@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-23-2026 01:00
+last_updated: 09-23-2026 01:45
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -53,7 +53,7 @@ development_status:
   3-2-calificar-un-baño-tras-el-check-in: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-ver-mi-actividad-en-el-perfil: backlog
+  epic-4: in-progress
+  4-1-ver-mi-actividad-en-el-perfil: review
   4-2-ver-calificaciones-de-otros-usuarios-en-un-baño: backlog
   epic-4-retrospective: optional

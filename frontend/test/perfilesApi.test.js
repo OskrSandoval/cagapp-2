@@ -10,7 +10,7 @@ vi.mock('../src/auth/supabaseClient', () => ({
 }));
 
 const { supabase } = await import('../src/auth/supabaseClient');
-const { obtenerMiPerfil } = await import('../src/api/perfilesApi.js');
+const { obtenerMiActividad, obtenerMiPerfil } = await import('../src/api/perfilesApi.js');
 
 describe('perfilesApi.obtenerMiPerfil', () => {
   beforeEach(() => {
@@ -55,5 +55,55 @@ describe('perfilesApi.obtenerMiPerfil', () => {
     });
 
     await expect(obtenerMiPerfil()).rejects.toThrow();
+  });
+});
+
+describe('perfilesApi.obtenerMiActividad', () => {
+  beforeEach(() => {
+    supabase.auth.getSession.mockClear();
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('pide GET /perfiles/yo/actividad con el token de sesión y devuelve el cuerpo cuando la respuesta es 200', async () => {
+    const actividad = [{ 'baño_id': 'bano-1', nombre: 'Café Uno', tipo_lugar: 'Cafetería', zona: 'Centro', estrellas: 5 }];
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => actividad,
+    });
+
+    const resultado = await obtenerMiActividad();
+
+    expect(resultado).toEqual(actividad);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/perfiles/yo/actividad'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer token-de-prueba' } })
+    );
+  });
+
+  it('propaga el mensaje de error del backend cuando la respuesta no es ok', async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Algo tronó en el servidor 💥' }),
+    });
+
+    await expect(obtenerMiActividad()).rejects.toThrow('Algo tronó en el servidor 💥');
+  });
+
+  it('usa el mensaje de respaldo si el backend no manda uno', async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('cuerpo no es JSON');
+      },
+    });
+
+    await expect(obtenerMiActividad()).rejects.toThrow('No pudimos revisar tu actividad 😬 — intenta de nuevo.');
   });
 });

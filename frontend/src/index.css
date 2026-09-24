@@ -266,3 +266,16 @@ body {
 .calificacion-lista-referencia { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 4px; }
 .calificacion-lista-fila { font-size: 12px; color: var(--muted); padding: 5px 9px; border-radius: 8px; }
 .calificacion-lista-fila--seleccionada { background: var(--surface); color: var(--text); font-weight: 800; }
+
+/* Story 4.1: Ícono de Perfil (reemplaza al "Cerrar sesión" suelto de 2.1) +
+   overlay de Perfil (mismas clases detalle-pantalla / surface-tarjeta / boton-primario de arriba) */
+.control-icono { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.perfil-lista-actividad { list-style: none; margin: 6px 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.perfil-fila-actividad { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.perfil-fila-info { min-width: 0; }
+.perfil-fila-nombre { margin: 0; font-size: 14px; font-weight: 800; color: var(--text); }
+.perfil-fila-meta { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.perfil-fila-calificacion { color: var(--primary); font-size: 15px; letter-spacing: 1px; flex-shrink: 0; }
+.perfil-fila-sin-calificar { font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; white-space: nowrap; }
+.perfil-estado-vacio { margin: 6px 0 16px; }
+.perfil-cerrar-sesion { width: auto; padding: 12px 20px; margin-top: 8px; }

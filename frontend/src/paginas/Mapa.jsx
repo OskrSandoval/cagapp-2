@@ -6,6 +6,7 @@ import { etiquetaPin, nivelCalificacion } from './pinMapa';
 import Lista from './Lista';
 import Detalle from './Detalle';
 import CrearBano from './CrearBano';
+import Perfil from './Perfil';
 
 const CENTRO_CDMX = [19.4326, -99.1332];
 
@@ -55,6 +56,11 @@ export default function Mapa({ onCerrarSesion }) {
   // Overlay de Crear Baño (Story 2.4); mismo patrón de no desmontar el mapa
   // que Detalle. Estado local, sin router.
   const [mostrandoCrearBano, setMostrandoCrearBano] = useState(false);
+  // Overlay de Perfil (Story 4.1); mismo patrón de no desmontar el mapa que
+  // Detalle/CrearBano. Reemplaza al botón "Cerrar sesión" que vivía suelto
+  // acá (stopgap de 2.1, ver Design Notes de la spec 4.1) — ahora ese botón
+  // vive dentro del propio Perfil.
+  const [mostrandoPerfil, setMostrandoPerfil] = useState(false);
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -201,8 +207,13 @@ export default function Mapa({ onCerrarSesion }) {
 
       {vista === 'lista' && <Lista banos={banos} onSeleccionar={setBanoSeleccionado} />}
 
-      <button type="button" className="control-flotante control-izquierda" onClick={onCerrarSesion}>
-        Cerrar sesión
+      <button
+        type="button"
+        className="control-flotante control-izquierda control-icono"
+        aria-label="Perfil"
+        onClick={() => setMostrandoPerfil(true)}
+      >
+        👤
       </button>
 
       <button
@@ -273,6 +284,10 @@ export default function Mapa({ onCerrarSesion }) {
             else if (textoZona) cargarBanos({ zona: textoZona });
           }}
         />
+      )}
+
+      {mostrandoPerfil && (
+        <Perfil onVolver={() => setMostrandoPerfil(false)} onCerrarSesion={onCerrarSesion} />
       )}
 
       {mostrandoCrearBano && (

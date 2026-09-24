@@ -42,3 +42,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-calificar-un-baño-tras-el-check-in.md`
   summary: "`obtenerPromediosPorBano` trae todo el historial de `calificaciones` de los baños pedidos en cada `GET /banos` y promedia en Node, sin límite — a escala, esto crece sin control por ser append-only con recalificación ilimitada."
   evidence: Verificado como real por el blind-hunter; misma categoría que el truncado por `max-rows` ya diferido desde la Story 2.1 (`GET /banos` sin paginación) — el epic difiere explícitamente optimizar a esta escala.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-1-ver-mi-actividad-en-el-perfil.md`
+  summary: "`obtenerActividad` trae todo el historial de `checkins`/`baños`/`calificaciones` del usuario sin límite en cada apertura de Perfil, y ninguna llamada `fetch` del frontend (incluida la nueva `obtenerMiActividad`) tiene timeout/`AbortController` — una conexión colgada deja la pantalla en 'Revisando tu actividad…' para siempre."
+  evidence: Verificado como real por el blind-hunter y el edge-case-hunter. Lo primero es la misma categoría de escala ya diferida desde la Story 2.1/3.2 (sin paginación a propósito por ahora); lo segundo es un patrón preexistente en absolutamente todos los archivos `api/*.js` del frontend, no algo que esta historia introdujo.

@@ -35,10 +35,12 @@ vi.mock('leaflet/dist/leaflet.css', () => ({}));
 vi.mock('../src/api/banosApi', () => ({ obtenerBanosCercanos: vi.fn(), crearBano: vi.fn() }));
 vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
 vi.mock('../src/api/calificacionesApi', () => ({ calificarBano: vi.fn() }));
+vi.mock('../src/api/perfilesApi', () => ({ obtenerMiActividad: vi.fn() }));
 
 const { obtenerBanosCercanos, crearBano } = await import('../src/api/banosApi');
 const { hacerCheckin } = await import('../src/api/checkinsApi');
 const { calificarBano } = await import('../src/api/calificacionesApi');
+const { obtenerMiActividad } = await import('../src/api/perfilesApi');
 const { default: Mapa } = await import('../src/paginas/Mapa.jsx');
 const { etiquetaPin, nivelCalificacion } = await import('../src/paginas/pinMapa.js');
 
@@ -94,6 +96,7 @@ describe('Mapa', () => {
     crearBano.mockReset();
     hacerCheckin.mockReset();
     calificarBano.mockReset();
+    obtenerMiActividad.mockReset();
     leaflet.default.marker.mockClear();
     leaflet.default.divIcon.mockClear();
     leaflet.default.tileLayer.mockClear();
@@ -398,6 +401,24 @@ describe('Mapa', () => {
     await screen.findByText(/gracias por calificar/i);
     await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
     expect(obtenerBanosCercanos).toHaveBeenLastCalledWith({ lat: 19.4326, lng: -99.1332 });
+  });
+
+  it('el Ícono de Perfil abre el overlay de Perfil; ya no existe un botón "Cerrar sesión" directo en Mapa', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([]);
+    obtenerMiActividad.mockResolvedValue([]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(1));
+
+    expect(screen.queryByRole('button', { name: /^cerrar sesión$/i })).not.toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /^perfil$/i }));
+
+    expect(screen.getByRole('dialog', { name: /^perfil$/i })).toBeInTheDocument();
+    await vi.waitFor(() => expect(obtenerMiActividad).toHaveBeenCalled());
+    expect(await screen.findByRole('button', { name: /^cerrar sesión$/i })).toBeInTheDocument();
   });
 
   it('limpia watchPosition con clearWatch al desmontar', async () => {
