@@ -16,3 +16,12 @@ export const CAPTIONS_CALIFICACION = {
 export function bandaCalificacion(promedio) {
   return Math.min(5, Math.max(1, Math.round(promedio)));
 }
+
+/**
+ * Renderiza N de 5 como estrellas llenas/vacías. Compartida entre `Detalle`
+ * y `Perfil` (retro de la Épica 4: estaba duplicada línea por línea entre
+ * ambos archivos).
+ */
+export function estrellasEstaticas(n) {
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}

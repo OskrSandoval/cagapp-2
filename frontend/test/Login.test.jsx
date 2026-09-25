@@ -66,6 +66,22 @@ describe('Login — pestaña Iniciar sesión', () => {
     expect(onAutenticado).not.toHaveBeenCalled();
   });
 
+  // Retro Épica 1, action item #1: una promesa rechazada (falla de red, no
+  // solo un `{error}` de Supabase) debe mostrar el fallback de marca en vez
+  // de dejar al usuario sin mensaje.
+  it('falla de red (promesa rechazada): muestra el mensaje de marca, no notifica autenticación y libera el botón', async () => {
+    const usuario = userEvent.setup();
+    supabase.auth.signInWithPassword.mockRejectedValue(new TypeError('Failed to fetch'));
+    const onAutenticado = vi.fn();
+
+    render(<Login onAutenticado={onAutenticado} />);
+    await llenarYEnviar(usuario);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/algo salió mal/i);
+    expect(onAutenticado).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /entrar y encontrar baño/i })).toBeEnabled();
+  });
+
   // Story 1.3: el link "olvide" navega a RecuperarAcceso (sin router, por
   // estado interno) y "Volver a iniciar sesión" regresa al formulario.
   it('el link "¿Se te olvidó?" navega a Recuperar acceso y "Volver" regresa al login', async () => {

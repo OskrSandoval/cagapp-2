@@ -113,6 +113,12 @@ export default function Login({ onAutenticado }) {
       }
 
       onAutenticado?.();
+    } catch (err) {
+      // Retro Épica 1, action item #1: una promesa rechazada (falla de red,
+      // no solo un `{error}` de Supabase) se queda sin mensaje sin este
+      // catch — mismo patrón que ya usan RecuperarAcceso.jsx/
+      // RestablecerContrasena.jsx (Story 1.3).
+      setErrorGeneral(mapearErrorAuth(err));
     } finally {
       setCargando(false);
     }

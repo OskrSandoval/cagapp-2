@@ -48,19 +48,16 @@ export default function Mapa({ onCerrarSesion }) {
   const [textoZona, setTextoZona] = useState('');
   // 'mapa' | 'lista'
   const [vista, setVista] = useState('mapa');
-  // Baño abierto en el Detalle; null = Detalle cerrado. Es la misma
-  // referencia que vive en `banos` (no se clona) — solo "parece" congelada
-  // porque `banos` se reemplaza por completo en cada refetch, nunca se muta
-  // en su lugar. Estado local, sin router (ver spec 2.3).
-  const [banoSeleccionado, setBanoSeleccionado] = useState(null);
-  // Overlay de Crear Baño (Story 2.4); mismo patrón de no desmontar el mapa
-  // que Detalle. Estado local, sin router.
-  const [mostrandoCrearBano, setMostrandoCrearBano] = useState(false);
-  // Overlay de Perfil (Story 4.1); mismo patrón de no desmontar el mapa que
-  // Detalle/CrearBano. Reemplaza al botón "Cerrar sesión" que vivía suelto
-  // acá (stopgap de 2.1, ver Design Notes de la spec 4.1) — ahora ese botón
-  // vive dentro del propio Perfil.
-  const [mostrandoPerfil, setMostrandoPerfil] = useState(false);
+  // Overlay a pantalla completa activo — nunca más de uno a la vez, ahora
+  // garantizado por construcción (un solo estado) en vez de por convención
+  // (3 booleanos/objetos independientes que en teoría podían pisarse; retro
+  // Épica 2, action item #1). `null` | `{ tipo: 'detalle', bano }` |
+  // `{ tipo: 'crearBano' }` | `{ tipo: 'perfil' }`. Ninguno desmonta el mapa
+  // de Leaflet debajo (Stories 2.3/2.4/4.1). El `bano` de `'detalle'` es la
+  // misma referencia que vive en `banos` (no se clona) — solo "parece"
+  // congelada porque `banos` se reemplaza por completo en cada refetch,
+  // nunca se muta en su lugar (ver spec 2.3). Estado local, sin router.
+  const [overlay, setOverlay] = useState(null);
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -159,7 +156,7 @@ export default function Mapa({ onCerrarSesion }) {
     if (!banos || banos.length === 0) return;
     const puntos = banos.map((bano) => {
       const marcador = L.marker([bano.lat, bano.lng], { icon: crearIconoPin(bano), title: bano.nombre });
-      marcador.on('click', () => setBanoSeleccionado(bano));
+      marcador.on('click', () => setOverlay({ tipo: 'detalle', bano }));
       marcador.addTo(capaBanosRef.current);
       return [bano.lat, bano.lng];
     });
@@ -205,13 +202,15 @@ export default function Mapa({ onCerrarSesion }) {
         data-testid="lienzo-mapa"
       />
 
-      {vista === 'lista' && <Lista banos={banos} onSeleccionar={setBanoSeleccionado} />}
+      {vista === 'lista' && (
+        <Lista banos={banos} onSeleccionar={(bano) => setOverlay({ tipo: 'detalle', bano })} />
+      )}
 
       <button
         type="button"
         className="control-flotante control-izquierda control-icono"
         aria-label="Perfil"
-        onClick={() => setMostrandoPerfil(true)}
+        onClick={() => setOverlay({ tipo: 'perfil' })}
       >
         👤
       </button>
@@ -267,14 +266,14 @@ export default function Mapa({ onCerrarSesion }) {
         )}
       </div>
 
-      <button type="button" className="fab-agregar" onClick={() => setMostrandoCrearBano(true)}>
+      <button type="button" className="fab-agregar" onClick={() => setOverlay({ tipo: 'crearBano' })}>
         ➕ Agregar Baño
       </button>
 
-      {banoSeleccionado && (
+      {overlay?.tipo === 'detalle' && (
         <Detalle
-          bano={banoSeleccionado}
-          onVolver={() => setBanoSeleccionado(null)}
+          bano={overlay.bano}
+          onVolver={() => setOverlay(null)}
           onCalificado={() => {
             // Mismo patrón que `onCreado` de Story 2.4: refresca `banos` para
             // que el pin/lista reflejen el promedio recién recalculado. En
@@ -286,22 +285,22 @@ export default function Mapa({ onCerrarSesion }) {
         />
       )}
 
-      {mostrandoPerfil && (
-        <Perfil onVolver={() => setMostrandoPerfil(false)} onCerrarSesion={onCerrarSesion} />
-      )}
+      {overlay?.tipo === 'perfil' && <Perfil onVolver={() => setOverlay(null)} onCerrarSesion={onCerrarSesion} />}
 
-      {mostrandoCrearBano && (
+      {overlay?.tipo === 'crearBano' && (
         <CrearBano
           ubicacion={ubicacion}
           banos={banos}
-          onVolver={() => setMostrandoCrearBano(false)}
+          onVolver={() => setOverlay(null)}
           onReintentarUbicacion={reintentarUbicacion}
           onCreado={(nuevoBano) => {
-            setMostrandoCrearBano(false);
             // Aterriza en el Detalle del baño recién creado (no de vuelta en
             // Mapa) — está a distancia 0 de sí mismo, exactamente donde
             // está el usuario, sin reimplementar Haversine para saberlo.
-            setBanoSeleccionado({ ...nuevoBano, calificacion_promedio: null, distancia_metros: 0 });
+            setOverlay({
+              tipo: 'detalle',
+              bano: { ...nuevoBano, calificacion_promedio: null, distancia_metros: 0 },
+            });
             if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
           }}
         />

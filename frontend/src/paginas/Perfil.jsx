@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { obtenerMiActividad } from '../api/perfilesApi';
-
-function estrellasEstaticas(estrellas) {
-  return '★'.repeat(estrellas) + '☆'.repeat(5 - estrellas);
-}
+import { estrellasEstaticas } from './calificacion';
 
 /**
  * Perfil (Story 4.1): overlay a pantalla completa dentro de `mapa-pantalla`,
