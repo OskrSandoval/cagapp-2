@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-24-2026 09:45
+last_updated: 09-24-2026 10:00
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -51,7 +51,7 @@ development_status:
   epic-3: in-progress
   3-1-hacer-check-in-en-un-baño: done
   3-2-calificar-un-baño-tras-el-check-in: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   epic-4: in-progress
   4-1-ver-mi-actividad-en-el-perfil: done
@@ -82,3 +82,19 @@ action_items:
     owner: "proceso"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-09-24.md"
+  - id: "epic-3-retro-item-4-extraer-flujocheckin-y-selectorcalificac"
+    epic: 3
+    action: "Extraer FlujoCheckin y SelectorCalificacion como sub-componentes de Detalle.jsx,
+      cada uno con su propio estado local"
+    owner: "proceso"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-24.md"
+  - id: "epic-3-retro-item-5-actualizar-deferred-work-md-el-item-de-s"
+    epic: 3
+    action: "Actualizar deferred-work.md: el item de Story 3.1 sobre indices faltantes
+      en checkins ya se resolvio parcialmente (004_calificaciones.sql agrega el indice);
+      solo quedan abiertas las partes de rate limiting/logging/prueba de RLS del mismo
+      bullet"
+    owner: "skr"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-24.md"
