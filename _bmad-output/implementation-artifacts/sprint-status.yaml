@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-24-2026 10:00
+last_updated: 09-24-2026 10:15
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   epic-4: in-progress
   4-1-ver-mi-actividad-en-el-perfil: done
   4-2-ver-calificaciones-de-otros-usuarios-en-un-baño: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 action_items:
   - id: "epic-1-retro-item-1-agregar-un-catch-alrededor-de-la-llamada"
     epic: 1
@@ -98,3 +98,10 @@ action_items:
     owner: "skr"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-24.md"
+  - id: "epic-4-retro-item-6-extraer-estrellasestaticas-de-perfil-jsx"
+    epic: 4
+    action: "Extraer estrellasEstaticas de Perfil.jsx/Detalle.jsx a frontend/src/paginas/calificacion.js
+      y que ambos importen desde ahi en vez de mantener implementaciones duplicadas"
+    owner: "dev"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-24.md"
