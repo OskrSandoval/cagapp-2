@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-24-2026 09:30
+last_updated: 09-24-2026 09:45
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -46,7 +46,7 @@ development_status:
   2-2-alternar-a-vista-de-lista: done
   2-3-ver-el-detalle-de-un-baño: done
   2-4-agregar-un-baño-nuevo-con-búsqueda-de-duplicados: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   epic-3: in-progress
   3-1-hacer-check-in-en-un-baño: done
@@ -74,3 +74,11 @@ action_items:
     owner: "proceso"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-24.md"
+  - id: "epic-2-retro-item-3-antes-de-agregar-un-cuarto-o-quinto-over"
+    epic: 2
+    action: "Antes de agregar un cuarto o quinto overlay a pantalla completa en Mapa.jsx,
+      evaluar extraer una pila de overlays compartida (un solo estado overlayActivo)
+      en vez de mas booleanos independientes"
+    owner: "proceso"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-2-retro-2026-09-24.md"
