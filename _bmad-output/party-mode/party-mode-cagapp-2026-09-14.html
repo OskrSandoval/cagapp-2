@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Fiesta CagApp — 11 sept 2026</title>
+<style>
+  :root {
+    --bg: #FFF8F3;
+    --card: #FFFFFF;
+    --ink: #2B1B12;
+    --muted: #8A6A5A;
+    --accent: #D53C19;
+    --border: #F2D9CC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  header .emoji { font-size: 42px; }
+  h1 {
+    font-size: 24px;
+    font-weight: 800;
+    margin: 8px 0 4px;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .cast {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 20px 0 36px;
+  }
+  .cast .chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bubble {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  }
+  .bubble .who {
+    font-weight: 800;
+    font-size: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bubble .line { font-size: 14.5px; line-height: 1.5; }
+  .bubble.mary { border-left: 4px solid #6C63FF; }
+  .bubble.john { border-left: 4px solid #2E9E5B; }
+  .bubble.sally { border-left: 4px solid #E85D9C; }
+  .bubble.winston { border-left: 4px solid #3A7CA5; }
+  .bubble.amelia { border-left: 4px solid var(--accent); }
+  .aside {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-style: italic;
+    margin: 18px 0;
+  }
+  .outcome {
+    margin-top: 36px;
+    background: #E6F4EB;
+    border: 1px solid #BFE6CC;
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .outcome h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: #1F7A45;
+  }
+  .outcome p { margin: 0; font-size: 14px; line-height: 1.6; }
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  svg.decor { display: block; margin: 24px auto; opacity: .85; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="emoji">🎉💩</div>
+    <h1>La Fiesta de Cag<span>App</span></h1>
+    <div class="subtitle">11 de septiembre de 2026 — recuerdo de la sesión</div>
+  </header>
+
+  <div class="cast">
+    <div class="chip">📊 Mary — Analista</div>
+    <div class="chip">📋 John — PM</div>
+    <div class="chip">🎨 Sally — UX</div>
+    <div class="chip">🏗️ Winston — Arquitecto</div>
+    <div class="chip">💻 Amelia — Dev</div>
+  </div>
+
+  <div class="aside">— se abre la sala, recién cerradas las 4 épicas y 11 historias del MVP —</div>
+
+  <div class="bubble john">
+    <div class="who">📋 John</div>
+    <div class="line">Ok, acabo de ver las cuatro épicas. Cuenta y Acceso, Baños, Check-in, Actividad. Directo al grano — ¿por qué Perfil y "lo que dice la gente" quedaron hasta el final? Eso es lo que hace que la gente <em>regrese</em>.</div>
+  </div>
+
+  <div class="bubble winston">
+    <div class="who">🏗️ Winston</div>
+    <div class="line">Porque técnicamente dependen de que ya exista data de calificaciones, John. No puedes mostrar "lo que dice la gente" si nadie ha calificado nada todavía.</div>
+  </div>
+
+  <div class="bubble john">
+    <div class="who">📋 John</div>
+    <div class="line">Ya sé, ya sé, secuencia de build. Pero secuencia de build no es lo mismo que secuencia de <em>valor</em>. Si yo fuera skr, querría saber que el gancho de retención está mapeado desde el día uno.</div>
+  </div>
+
+  <div class="bubble sally">
+    <div class="who">🎨 Sally</div>
+    <div class="line">Ahí les tengo algo, de hecho. Perfil sigue sin mockup — solo vive en tablas. Y el principio de diseño quedó literal: "que el usuario sienta que su aporte cuenta." Eso no se logra con una lista de filas.</div>
+  </div>
+
+  <div class="bubble amelia">
+    <div class="who">💻 Amelia</div>
+    <div class="line">Story 4.1, AC tres: "nunca se muestra la actividad de otros usuarios." Eso sí está bien especificado — sé exactamente qué no romper.</div>
+  </div>
+
+  <div class="bubble mary">
+    <div class="who">📊 Mary</div>
+    <div class="line">A mí me llama la atención otra cosa — la épica 2 junta descubrir y crear baños porque "comparten archivos backend." Válido, pero un usuario nuevo puede terminar creando el primer baño sin ver ninguno calificado antes. ¿Eso está bien, o quieren sembrar datos antes de lanzar?</div>
+  </div>
+
+  <div class="aside">— skr responde: él, el abogado y el emprendedor precargarán los primeros baños, luego pasan a friends &amp; family, después liberan público —</div>
+
+  <div class="bubble winston">
+    <div class="who">🏗️ Winston</div>
+    <div class="line">Espera — eso en realidad no necesita nada nuevo. Ustedes tres van a usar exactamente el mismo flujo de la Épica 2, Story 2.4. "Agregar Baño." No hay botón de admin. Son solo... los primeros tres usuarios.</div>
+  </div>
+
+  <div class="bubble john">
+    <div class="who">📋 John</div>
+    <div class="line">Ahí está. Eso es lo que me gusta oír. Ningún requisito nuevo, ninguna épica de "modo administrador" que se me haya escapado.</div>
+  </div>
+
+  <div class="bubble mary">
+    <div class="who">📊 Mary</div>
+    <div class="line">El plan me interesa por otra razón — friends &amp; family antes de liberar es la prueba real de la tesis del PRD: que el reseñador entusiasta sostiene la base de datos entre picos de urgencia. Con esos amigos probando vas a ver rapidísimo si alguien califica sin que se le urja.</div>
+  </div>
+
+  <div class="bubble sally">
+    <div class="who">🎨 Sally</div>
+    <div class="line">Y ahí les dejo una tarea mental, no de código: cuando entreguen acceso, alguien tiene que explicarles "sí necesitas cuenta para hasta ver el mapa." Nada que cambie una historia, solo algo que cuidar al presentárselos.</div>
+  </div>
+
+  <div class="bubble amelia">
+    <div class="who">💻 Amelia</div>
+    <div class="line">Para mí, buenas noticias: cero historias nuevas, cero ACs que reescribir. El plan de lanzamiento ya cabe completo en lo que aprobamos.</div>
+  </div>
+
+  <svg class="decor" width="120" height="40" viewBox="0 0 120 40">
+    <circle cx="20" cy="20" r="6" fill="#D53C19"/>
+    <circle cx="50" cy="20" r="6" fill="#1F7A45"/>
+    <circle cx="80" cy="20" r="6" fill="#CB3E48"/>
+    <circle cx="100" cy="20" r="6" fill="#8A6A5A"/>
+  </svg>
+
+  <div class="outcome">
+    <h2>✅ Lo que quedó</h2>
+    <p>El plan de lanzamiento de skr (fundador + abogado + emprendedor precargan los primeros baños de CDMX, luego friends &amp; family, luego público) cabe completo en las 4 épicas ya aprobadas — no se necesitó ninguna épica ni historia nueva. Queda como nota viva: ese periodo de friends &amp; family es la prueba real de si el "motor de crecimiento de dos personas" del PRD funciona en la calle.</p>
+  </div>
+
+  <footer>CagApp 2.0 · Party Mode · Equipo de desarrollo BMad</footer>
+</div>
+</body>
+</html>
