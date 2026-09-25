@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-24-2026 09:00
+last_updated: 09-24-2026 09:30
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -39,7 +39,7 @@ development_status:
   1-1-registro-de-cuenta: done
   1-2-inicio-de-sesión-y-puerta-de-entrada-obligatoria: done
   1-3-recuperar-acceso: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   epic-2: in-progress
   2-1-ver-baños-cercanos-en-el-mapa: done
@@ -57,3 +57,20 @@ development_status:
   4-1-ver-mi-actividad-en-el-perfil: done
   4-2-ver-calificaciones-de-otros-usuarios-en-un-baño: done
   epic-4-retrospective: optional
+action_items:
+  - id: "epic-1-retro-item-1-agregar-un-catch-alrededor-de-la-llamada"
+    epic: 1
+    action: "Agregar un catch alrededor de la llamada a Supabase Auth en frontend/src/paginas/Login.jsx
+      (manejarEnvio) que muestre un mensaje de fallback si la promesa se rechaza por
+      falla de red, igual que ya hacen RecuperarAcceso.jsx/RestablecerContrasena.jsx"
+    owner: "dev"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-24.md"
+  - id: "epic-1-retro-item-2-cuando-una-story-agregue-un-patron-de-re"
+    epic: 1
+    action: "Cuando una story agregue un patron de resiliencia para compensar un gap
+      de una story anterior, evaluar backportear el patron al archivo original en
+      el mismo Code Map en vez de solo documentar el contraste"
+    owner: "proceso"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-24.md"
