@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from './auth/supabaseClient';
 import { obtenerMiPerfil } from './api/perfilesApi';
 import Login from './paginas/Login';
 import CompletarPerfil from './paginas/CompletarPerfil';
 import RestablecerContrasena from './paginas/RestablecerContrasena';
 import Mapa from './paginas/Mapa';
+import EnEspera from './paginas/EnEspera';
 
 export default function App() {
   const [sesion, setSesion] = useState(undefined); // undefined = cargando
@@ -29,6 +30,16 @@ export default function App() {
     });
 
     return () => suscripcion.subscription.unsubscribe();
+  }, []);
+
+  // Gate "friends and family": callback estable (deps vacío) para que
+  // EnEspera no reinicie su temporizador de 30s en cada re-render de App
+  // (ej. un evento TOKEN_REFRESHED de Supabase mientras espera).
+  const manejarTiempoAgotado = useCallback(async () => {
+    await supabase.auth.signOut().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error('No pudimos cerrar la sesión tras el tiempo de espera:', error);
+    });
   }, []);
 
   useEffect(() => {
@@ -72,6 +83,14 @@ export default function App() {
 
   if (perfil === null) {
     return <CompletarPerfil onCompletado={(nuevoPerfil) => setPerfil(nuevoPerfil)} />;
+  }
+
+  // AD-9 / gate "friends and family": estrictamente `=== false`, nunca
+  // `!perfil.autorizado` — un perfil sin el campo (migración aún no
+  // corrida, o cualquier estado transitorio) debe comportarse como
+  // autorizado, igual que hoy.
+  if (perfil.autorizado === false) {
+    return <EnEspera onTiempoAgotado={manejarTiempoAgotado} />;
   }
 
   return (
