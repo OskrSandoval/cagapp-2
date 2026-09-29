@@ -337,7 +337,7 @@ describe('Mapa', () => {
     await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
   });
 
-  it('con un baño duplicado a <=1.5km, Agregar Baño muestra ese baño en vez del formulario', async () => {
+  it('con un baño a <=200m, Agregar Baño lista ese baño y deja crear uno nuevo', async () => {
     const usuario = userEvent.setup();
     geolocalizacion({ concede: true });
     obtenerBanosCercanos.mockResolvedValue([BANO]); // distancia_metros: 150, dentro del radio
@@ -347,8 +347,40 @@ describe('Mapa', () => {
 
     await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
 
+    expect(screen.getByRole('button', { name: /plaza uno/i })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: /ninguno es este, crear nuevo/i }));
+    expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
+  });
+
+  it('calificar un baño abierto desde la lista de Agregar Baño refresca banos', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    hacerCheckin.mockResolvedValue({ id: 'checkin-1' });
+    calificarBano.mockResolvedValue({ id: 'calificacion-1', calificacion_promedio: 5 });
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+    await usuario.click(screen.getByRole('button', { name: /plaza uno/i }));
     expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+
+    globalThis.navigator.geolocation.getCurrentPosition = vi.fn((exito) =>
+      exito({ coords: { latitude: 19.4326, longitude: -99.1332, accuracy: 10 } })
+    );
+    await usuario.click(screen.getByRole('button', { name: /hacer check-in/i }));
+    await screen.findByRole('status');
+    await usuario.click(screen.getByRole('button', { name: /calificar 5 de 5/i }));
+    await usuario.click(screen.getByRole('button', { name: /confirmar calificación/i }));
+
+    await screen.findByText(/gracias por calificar/i);
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('dialog', { name: /detalle de plaza uno/i })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+    expect(screen.getByRole('list', { name: /baños cerca de ti/i })).toBeInTheDocument();
   });
 
   it('sin ubicación conocida, Agregar Baño muestra el bloqueo y reintentar pide permiso de nuevo', async () => {

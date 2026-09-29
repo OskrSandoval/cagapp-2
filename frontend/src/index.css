@@ -250,6 +250,10 @@ body {
 
 /* Story 2.4: overlay de Crear Baño (mismo .detalle-pantalla/.campo/.mensaje-error/.boton-primario de arriba) */
 .crear-bano-intro { margin: 6px 0 16px; }
+.lista-cercanos { margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.lista-cercanos .fila-bano-boton { min-height: 44px; }
+.lista-cercanos .fila-bano-nombre, .lista-cercanos .fila-bano-meta { display: block; }
+.boton-secundario { display: block; width: 100%; text-align: center; background: var(--bg); color: var(--primary); border: 1px solid var(--border); border-radius: 12px; padding: 13px 12px; font-size: 15px; font-weight: 800; cursor: pointer; }
 .detalle-contenido .surface-tarjeta .boton-primario { margin-top: 12px; }
 
 /* Story 3.1: Chip de rango + flujo de check-in en Detalle (mismo .surface-tarjeta/.mensaje-error/.boton-primario de arriba) */

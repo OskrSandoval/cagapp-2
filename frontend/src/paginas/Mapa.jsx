@@ -194,6 +194,15 @@ export default function Mapa({ onCerrarSesion }) {
 
   const sinBanos = banos !== null && banos.length === 0 && !cargando;
 
+  // Mismo patrón que `onCreado`: refresca `banos` para que el pin/lista
+  // reflejen el promedio recién recalculado. En modo zona (geolocalización
+  // denegada) no hay `ubicacion` — cae al mismo buscador por zona ya usado
+  // en `buscarPorZona`.
+  function refrescarTrasCalificar() {
+    if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
+    else if (textoZona) cargarBanos({ zona: textoZona });
+  }
+
   return (
     <div className="mapa-pantalla">
       <div
@@ -271,18 +280,7 @@ export default function Mapa({ onCerrarSesion }) {
       </button>
 
       {overlay?.tipo === 'detalle' && (
-        <Detalle
-          bano={overlay.bano}
-          onVolver={() => setOverlay(null)}
-          onCalificado={() => {
-            // Mismo patrón que `onCreado` de Story 2.4: refresca `banos` para
-            // que el pin/lista reflejen el promedio recién recalculado. En
-            // modo zona (geolocalización denegada) no hay `ubicacion` — cae
-            // al mismo buscador por zona ya usado en `buscarPorZona`.
-            if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
-            else if (textoZona) cargarBanos({ zona: textoZona });
-          }}
-        />
+        <Detalle bano={overlay.bano} onVolver={() => setOverlay(null)} onCalificado={refrescarTrasCalificar} />
       )}
 
       {overlay?.tipo === 'perfil' && <Perfil onVolver={() => setOverlay(null)} onCerrarSesion={onCerrarSesion} />}
@@ -293,6 +291,7 @@ export default function Mapa({ onCerrarSesion }) {
           banos={banos}
           onVolver={() => setOverlay(null)}
           onReintentarUbicacion={reintentarUbicacion}
+          onCalificado={refrescarTrasCalificar}
           onCreado={(nuevoBano) => {
             // Aterriza en el Detalle del baño recién creado (no de vuelta en
             // Mapa) — está a distancia 0 de sí mismo, exactamente donde
