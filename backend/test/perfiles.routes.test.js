@@ -28,6 +28,8 @@ describe('rutas /perfiles', () => {
     serviciosMock.crearOActualizarPerfil.mockReset();
     serviciosMock.obtenerPerfilPorId.mockReset();
     serviciosMock.obtenerActividad.mockReset();
+    // Gate "friends and family": por defecto el usuario de prueba está autorizado.
+    serviciosMock.obtenerPerfilPorId.mockResolvedValue({ id: 'user-1', autorizado: true });
   });
 
   it('rechaza peticiones sin token con 401', async () => {
