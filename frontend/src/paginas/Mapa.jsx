@@ -205,79 +205,88 @@ export default function Mapa({ onCerrarSesion }) {
 
   return (
     <div className="mapa-pantalla">
-      <div
-        ref={contenedorRef}
-        className={`mapa-lienzo${vista === 'lista' ? ' mapa-lienzo--oculto' : ''}`}
-        data-testid="lienzo-mapa"
-      />
+      {/* Barras sólidas arriba y abajo en vez de controles flotantes: nada
+          se encima con el zoom de Leaflet y la barra inferior siempre queda
+          dentro del viewport visible del celular. */}
+      <header className="barra-superior">
+        <button
+          type="button"
+          className="control-barra control-icono"
+          aria-label="Perfil"
+          onClick={() => setOverlay({ tipo: 'perfil' })}
+        >
+          👤
+        </button>
 
-      {vista === 'lista' && (
-        <Lista banos={banos} onSeleccionar={(bano) => setOverlay({ tipo: 'detalle', bano })} />
-      )}
+        <button
+          type="button"
+          className="control-barra"
+          onClick={() => setVista((actual) => (actual === 'mapa' ? 'lista' : 'mapa'))}
+          aria-pressed={vista === 'lista'}
+        >
+          {vista === 'mapa' ? '☰ Ver lista' : '☰ Ver mapa'}
+        </button>
+      </header>
 
-      <button
-        type="button"
-        className="control-flotante control-izquierda control-icono"
-        aria-label="Perfil"
-        onClick={() => setOverlay({ tipo: 'perfil' })}
-      >
-        👤
-      </button>
+      <main className="area-contenido">
+        <div
+          ref={contenedorRef}
+          className={`mapa-lienzo${vista === 'lista' ? ' mapa-lienzo--oculto' : ''}`}
+          data-testid="lienzo-mapa"
+        />
 
-      <button
-        type="button"
-        className="control-flotante control-derecha"
-        onClick={() => setVista((actual) => (actual === 'mapa' ? 'lista' : 'mapa'))}
-        aria-pressed={vista === 'lista'}
-      >
-        {vista === 'mapa' ? '☰ Ver lista' : '☰ Ver mapa'}
-      </button>
+        {vista === 'lista' && (
+          <Lista banos={banos} onSeleccionar={(bano) => setOverlay({ tipo: 'detalle', bano })} />
+        )}
 
-      <div className="capa-estado">
-        {modo === 'localizando' && <p className="surface-tarjeta">Buscando dónde andas 📍…</p>}
+        <div className="capa-estado">
+          {modo === 'localizando' && <p className="surface-tarjeta">Buscando dónde andas 📍…</p>}
 
-        {modo === 'zona' && (
-          <form className="surface-tarjeta" onSubmit={buscarPorZona}>
-            <p className="surface-titulo">Sin ubicación no hay drama 🙈 — dinos por dónde andas.</p>
-            <div className="campo">
-              <label htmlFor="zona-busqueda">Zona o colonia</label>
-              <input
-                id="zona-busqueda"
-                type="text"
-                value={textoZona}
-                onChange={(e) => setTextoZona(e.target.value)}
-                placeholder="Ej. Roma Norte"
-              />
+          {modo === 'zona' && (
+            <form className="surface-tarjeta" onSubmit={buscarPorZona}>
+              <p className="surface-titulo">Sin ubicación no hay drama 🙈 — dinos por dónde andas.</p>
+              <div className="campo">
+                <label htmlFor="zona-busqueda">Zona o colonia</label>
+                <input
+                  id="zona-busqueda"
+                  type="text"
+                  value={textoZona}
+                  onChange={(e) => setTextoZona(e.target.value)}
+                  placeholder="Ej. Roma Norte"
+                />
+              </div>
+              <button type="submit" className="boton-primario" disabled={cargando}>
+                Buscar
+              </button>
+            </form>
+          )}
+
+          {cargando && (
+            <p className="surface-tarjeta" role="status">
+              Buscando baños… 🚽
+            </p>
+          )}
+
+          {error && (
+            <p className="surface-tarjeta mensaje-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          {sinBanos && (
+            <div className="surface-tarjeta" role="status">
+              <p className="surface-titulo">Aquí no hay ni un baño registrado 🏜️</p>
+              <p>¿Y si eres la primera persona en agregar uno? Sé leyenda.</p>
             </div>
-            <button type="submit" className="boton-primario" disabled={cargando}>
-              Buscar
-            </button>
-          </form>
-        )}
+          )}
+        </div>
+      </main>
 
-        {cargando && (
-          <p className="surface-tarjeta" role="status">
-            Buscando baños… 🚽
-          </p>
-        )}
-
-        {error && (
-          <p className="surface-tarjeta mensaje-error" role="alert">
-            {error}
-          </p>
-        )}
-
-        {sinBanos && (
-          <div className="surface-tarjeta" role="status">
-            <p className="surface-titulo">Aquí no hay ni un baño registrado 🏜️</p>
-            <p>¿Y si eres la primera persona en agregar uno? Sé leyenda.</p>
-          </div>
-        )}
-      </div>
-
-      <button type="button" className="fab-agregar" onClick={() => setOverlay({ tipo: 'crearBano' })}>
-        ➕ Agregar Baño
-      </button>
+      <footer className="barra-inferior">
+        <button type="button" className="fab-agregar" onClick={() => setOverlay({ tipo: 'crearBano' })}>
+          ➕ Agregar Baño
+        </button>
+      </footer>
 
       {overlay?.tipo === 'detalle' && (
         <Detalle bano={overlay.bano} onVolver={() => setOverlay(null)} onCalificado={refrescarTrasCalificar} />

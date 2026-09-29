@@ -55,3 +55,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-gate-autorizado-backend.md`
   summary: "El gate `verificarAutorizado` es opt-in por ruta: un endpoint o router nuevo que olvide encadenarlo queda abierto a usuarios no autorizados, y `rutasConGate` en `autorizacion.routes.test.js` es una lista manual que no lo detectaría."
   evidence: Verificado por el blind-hunter; mismo patrón opt-in que ya usa `verificarSesion` desde la Épica 1, así que no es una regresión de este cambio. La corrección robusta (gate a nivel app con allowlist de `POST /perfiles` y `GET /perfiles/yo`, o un test que recorra el stack de rutas de Express) cambia la forma de montar middleware en todo el backend — amerita su propia historia.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-barras-de-navegación-superior-e-inferior-responsivas.md`
+  summary: "`.pantalla-login` (Login, EnEspera, CompletarPerfil, RecuperarAcceso, RestablecerContrasena) sigue usando `min-height: 100vh`, que en celular mide más que el área visible y agrega un scroll innecesario."
+  evidence: Lo encontró el blind-hunter de la Story 5.2. Es un problema anterior, no causado por la 5.2 (que solo corrige `.mapa-pantalla`). Es low porque `min-height` no esconde contenido, solo agrega scroll. El arreglo es el mismo fallback `100vh` → `100dvh`.
