@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-29-2026 14:30
+last_updated: 09-29-2026 15:30
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -62,7 +62,7 @@ development_status:
   5-1-lista-de-baños-cercanos-antes-de-crear-uno-nuevo: done
   5-2-barras-de-navegación-superior-e-inferior-responsivas: done
   5-3-enviar-sugerencias-y-reportar-bugs: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 action_items:
   - id: "epic-1-retro-item-1-agregar-un-catch-alrededor-de-la-llamada"
     epic: 1
@@ -111,3 +111,45 @@ action_items:
     owner: "dev"
     status: done
     ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-24.md"
+  - id: "epic-5-retro-item-7-hotfix-r1-r4-de-la-retro-épica-5-foco-de"
+    epic: 5
+    action: "Hotfix R1-R4 de la retro épica 5: foco de CrearBano sin depender del
+      objeto ubicacion; error con reintento cuando banos falla; congelar cercanos
+      solo con ubicacion y resolver seleccionado por id; capa-estado sin tapar la
+      Lista (left 56px solo en mapa). Con tests donde cambien las props"
+    owner: "dev"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
+  - id: "epic-5-retro-item-8-reconciliar-docs-architecture-spine-md-6"
+    epic: 5
+    action: "Reconciliar docs: ARCHITECTURE-SPINE.md:65 FR-7 = 200m (lista, sin bloqueo);
+      EXPERIENCE.md:59 y DESIGN.md:214 indicar que las safe areas están desactivadas
+      sin viewport-fit=cover (o quitar env() y la aserción del test)"
+    owner: "pm"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
+  - id: "epic-5-retro-item-9-si-un-parche-de-revisión-cambia-estado-d"
+    epic: 5
+    action: "Si un parche de revisión cambia estado, dependencias de efectos o memoización:
+      agregar un test donde cambien las props (objeto nuevo con los mismos valores,
+      null) y volver a correr al menos un revisor sobre el parche antes de cerrar
+      la historia"
+    owner: "proceso"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
+  - id: "epic-5-retro-item-10-historias-de-ui-skr-prueba-en-su-celular"
+    epic: 5
+    action: "Historias de UI: skr prueba en su celular antes del merge; crear una
+      cuenta de prueba o un bypass de auth local para que el agente pueda ejecutar
+      la app y verificar visualmente"
+    owner: "skr"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
+  - id: "epic-5-retro-item-11-extraer-obtenertokenactual-leercuerpoerr"
+    epic: 5
+    action: "Extraer obtenerTokenActual/leerCuerpoError a frontend/src/api/cliente.js
+      (hoy hay 5 copias) y el bloque detalle-nav repetido en CrearBano.jsx a un componente
+      compartido"
+    owner: "dev"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
