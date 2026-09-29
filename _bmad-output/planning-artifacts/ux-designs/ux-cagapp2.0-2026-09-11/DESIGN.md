@@ -211,7 +211,7 @@ Estructura: **una sola columna siempre**, sin excepción — mobile-first respon
 
 Navegación `[CAMBIO 2026-09-29 — reemplaza los controles flotantes sobre el mapa; ver EXPERIENCE.md § Information Architecture]`: Mapa y Lista quedan enmarcados por **dos barras sólidas**, con el contenido entre ellas. Nada flota sobre el mapa.
 - **Barra superior**: fondo `{colors.bg}`, borde inferior `1px {colors.border}`, padding horizontal `gutter`. Ícono de Perfil a la izquierda, Botón de Sugerencias 💬 junto a él (solo en Fase Friends and Family) y Toggle Mapa/Lista a la derecha.
-- **Barra inferior**: fondo `{colors.bg}`, borde superior `1px {colors.border}`, padding `12px gutter` más `env(safe-area-inset-bottom)`. Contiene **solo** el Botón Agregar Baño. Es una barra de acción, **no** una tab bar.
+- **Barra inferior**: fondo `{colors.bg}`, borde superior `1px {colors.border}`, padding `12px gutter` (más `env(safe-area-inset-bottom)`, que hoy vale 0 porque no se usa `viewport-fit=cover`; ver EXPERIENCE.md § Information Architecture). Contiene **solo** el Botón Agregar Baño. Es una barra de acción, **no** una tab bar.
 - El layout usa `100dvh` para que la barra inferior nunca quede debajo de la barra del navegador móvil.
 - El **Detalle de Baño** (y Crear Baño, Perfil, Sugerencias) usa navegación por back-button (←) en una barra superior simple, sin las dos barras.
 

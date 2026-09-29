@@ -62,9 +62,9 @@ graph LR
 
 ### AD-4 — El cálculo de distancia vive una sola vez, en el backend
 
-- **Binds:** FR-7 (radio de 1.5km), FR-9 (radio de 150m)
+- **Binds:** FR-7 (lista de baños a ≤200m antes de crear, sin bloqueo — `[CAMBIO 2026-09-29]`, antes 1.5km con bloqueo total), FR-9 (radio de 150m)
 - **Prevents:** que el frontend y el backend calculen la distancia de formas distintas y lleguen a decisiones distintas de "¿está en rango?"; que FR-7 y FR-9 usen dos implementaciones de Haversine con redondeo distinto y diverjan en el límite exacto.
-- **Rule:** existe **una única función** `calcularDistanciaMetros(a, b)` en la capa de servicios (Haversine), y tanto la validación de check-in (FR-9) como la búsqueda de duplicados (FR-7) la importan y llaman — ninguna reimplementa su propia fórmula. El frontend nunca decide por sí mismo si un check-in es válido — solo refleja lo que la API responde.
+- **Rule:** existe **una única función** `calcularDistanciaMetros(a, b)` en la capa de servicios (Haversine), y tanto la validación de check-in (FR-9) como la búsqueda de duplicados (FR-7) la importan y llaman — ninguna reimplementa su propia fórmula. Para FR-7, el frontend filtra por `distancia_metros <= 200` usando el valor que ya calculó el backend en `GET /banos`; no calcula distancias él mismo. El frontend nunca decide por sí mismo si un check-in es válido — solo refleja lo que la API responde.
 
 ### AD-5 — Identidad y credenciales viven solo en Supabase Auth
 
