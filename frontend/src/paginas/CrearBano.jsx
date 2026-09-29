@@ -26,7 +26,17 @@ function calcularCercanos(banos) {
  * (`ubicacion`) es la del dispositivo, ya resuelta por `Mapa.jsx` — nunca es
  * un campo editable ni un picker de mapa.
  */
-export default function CrearBano({ ubicacion, banos, onVolver, onCreado, onReintentarUbicacion, onCalificado }) {
+export default function CrearBano({
+  ubicacion,
+  banos,
+  cargandoBanos = false,
+  errorBanos = null,
+  onVolver,
+  onCreado,
+  onReintentarUbicacion,
+  onReintentarBanos,
+  onCalificado,
+}) {
   const [nombre, setNombre] = useState('');
   const [zona, setZona] = useState('');
   const [tipoLugar, setTipoLugar] = useState('');
@@ -39,23 +49,39 @@ export default function CrearBano({ ubicacion, banos, onVolver, onCreado, onRein
   // (p. ej. tras calificar desde un `Detalle` abierto aquí, o uno fallido que
   // deja `banos` en null) no debe cambiar la pantalla bajo los pies del
   // usuario ni convertir el formulario en lista a medio escribir.
-  const [cercanos, setCercanos] = useState(() => calcularCercanos(banos));
-  if (cercanos === null && banos) setCercanos(calcularCercanos(banos));
-  const cargandoCercanos = cercanos === null;
+  // Solo se congela con `banos` pedidos para una ubicación real: en modo
+  // zona las distancias vienen en null y congelarlas daría una lista vacía
+  // falsa al activar la ubicación.
+  const puedeCongelar = Boolean(ubicacion) && !cargandoBanos && Boolean(banos);
+  const [cercanos, setCercanos] = useState(() => (puedeCongelar ? calcularCercanos(banos) : null));
+  if (cercanos === null && puedeCongelar) setCercanos(calcularCercanos(banos));
+
+  // La membresía de la lista queda congelada, pero el baño abierto se lee
+  // del `banos` actual para que el Detalle refleje, p. ej., el promedio
+  // recién recalculado tras calificar.
+  const seleccionadoActual = seleccionado ? (banos?.find((b) => b.id === seleccionado.id) ?? seleccionado) : null;
+
+  let pantalla;
+  if (!ubicacion) pantalla = 'bloqueo';
+  else if (cercanos === null) pantalla = errorBanos && !cargandoBanos ? 'error' : 'buscando';
+  else if (seleccionado) pantalla = 'detalle';
+  else if (cercanos.length > 0 && !quiereCrear) pantalla = 'lista';
+  else pantalla = 'formulario';
 
   const volverRef = useRef(null);
   const nombreRef = useRef(null);
   const zonaRef = useRef(null);
   const tipoLugarRef = useRef(null);
 
-  // Mismo patrón que `Detalle`: foco al botón Volver al abrir el overlay y
-  // al regresar de un `Detalle` o pasar al formulario (el `Detalle`
-  // maneja su propio foco mientras está abierto).
+  // Foco a Volver solo cuando cambia la pantalla del overlay — nunca por
+  // props nuevas con el mismo contenido (cada lectura de GPS crea un
+  // `ubicacion` nuevo y le quitaba el foco al campo que se estaba
+  // escribiendo). El `Detalle` maneja su propio foco.
   useEffect(() => {
-    if (!seleccionado) volverRef.current?.focus();
-  }, [seleccionado, quiereCrear, ubicacion, cargandoCercanos]);
+    if (pantalla !== 'detalle') volverRef.current?.focus();
+  }, [pantalla]);
 
-  if (!ubicacion) {
+  if (pantalla === 'bloqueo') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
         <div className="detalle-nav">
@@ -77,7 +103,29 @@ export default function CrearBano({ ubicacion, banos, onVolver, onCreado, onRein
     );
   }
 
-  if (cargandoCercanos) {
+  if (pantalla === 'error') {
+    return (
+      <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
+        <div className="detalle-nav">
+          <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
+            ←
+          </button>
+          <span>Agregar baño</span>
+        </div>
+        <div className="detalle-contenido">
+          <div className="surface-tarjeta" role="alert">
+            <p className="surface-titulo">{errorBanos}</p>
+            <p>Sin la lista de baños cercanos no podemos evitar duplicados.</p>
+            <button type="button" className="boton-primario" onClick={onReintentarBanos}>
+              Reintentar 🔄
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (pantalla === 'buscando') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
         <div className="detalle-nav">
@@ -95,11 +143,11 @@ export default function CrearBano({ ubicacion, banos, onVolver, onCreado, onRein
     );
   }
 
-  if (seleccionado) {
-    return <Detalle bano={seleccionado} onVolver={() => setSeleccionado(null)} onCalificado={onCalificado} />;
+  if (pantalla === 'detalle') {
+    return <Detalle bano={seleccionadoActual} onVolver={() => setSeleccionado(null)} onCalificado={onCalificado} />;
   }
 
-  if (cercanos.length > 0 && !quiereCrear) {
+  if (pantalla === 'lista') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
         <div className="detalle-nav">

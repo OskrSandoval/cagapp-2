@@ -219,6 +219,13 @@ body {
 /* left: 56px deja libre el zoom de Leaflet (arriba a la izquierda, ~44px). */
 .capa-estado { position: absolute; top: 12px; left: 56px; right: 12px; z-index: 500; display: flex; flex-direction: column; gap: 8px; max-width: 375px; margin: 0 auto; pointer-events: none; }
 .capa-estado > * { pointer-events: auto; }
+/* En Lista no hay zoom que esquivar y la capa flotante tapaba las primeras
+   filas: ahí la capa va en el flujo, arriba de la lista, y la lista ocupa
+   el resto con su propio scroll. */
+.area-contenido--lista { display: flex; flex-direction: column; background: #ededed; }
+.area-contenido--lista .capa-estado { position: static; margin: 12px 12px 0; max-width: none; max-height: 50%; overflow-y: auto; flex-shrink: 0; }
+.area-contenido--lista .lista-banos { position: static; flex: 1; min-height: 0; }
+.capa-estado:empty { display: none; }
 .surface-tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 0; font-size: 13px; line-height: 1.4; }
 .surface-titulo { margin: 0 0 6px; font-weight: 800; }
 .fab-agregar { width: 100%; max-width: 320px; min-height: 48px; padding: 0 20px; box-shadow: 0 6px 14px rgba(213, 60, 25, 0.35); background: var(--primary); color: var(--primary-ink); border: none; border-radius: 24px; font-size: 15px; font-weight: 800; cursor: pointer; }
