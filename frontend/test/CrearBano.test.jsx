@@ -217,4 +217,86 @@ describe('CrearBano', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos crear el baño/i);
     expect(screen.getByLabelText(/^nombre$/i)).toHaveValue('Café Nuevo');
   });
+
+  describe('props que cambian mientras el overlay está abierto', () => {
+    it('una lectura nueva de GPS (objeto ubicacion nuevo) no le quita el foco al campo que estoy escribiendo', async () => {
+      const usuario = userEvent.setup();
+      const { rerender } = render(<CrearBano ubicacion={UBICACION} banos={[]} onVolver={() => {}} />);
+
+      await usuario.type(screen.getByLabelText(/^nombre$/i), 'Café');
+      expect(screen.getByLabelText(/^nombre$/i)).toHaveFocus();
+
+      rerender(<CrearBano ubicacion={{ ...UBICACION }} banos={[]} onVolver={() => {}} />);
+      rerender(<CrearBano ubicacion={{ lat: UBICACION.lat + 0.00001, lng: UBICACION.lng }} banos={[]} onVolver={() => {}} />);
+
+      expect(screen.getByLabelText(/^nombre$/i)).toHaveFocus();
+    });
+
+    it('si la carga de baños falla, muestra un error de marca con Reintentar en vez de "buscando" para siempre', async () => {
+      const usuario = userEvent.setup();
+      const onReintentarBanos = vi.fn();
+      render(
+        <CrearBano
+          ubicacion={UBICACION}
+          banos={null}
+          cargandoBanos={false}
+          errorBanos="No pudimos traer los baños 😬 — intenta de nuevo."
+          onReintentarBanos={onReintentarBanos}
+          onVolver={() => {}}
+        />
+      );
+
+      expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos traer los baños/i);
+      expect(screen.queryByText(/buscando baños cerca/i)).not.toBeInTheDocument();
+      await usuario.click(screen.getByRole('button', { name: /reintentar/i }));
+      expect(onReintentarBanos).toHaveBeenCalledTimes(1);
+    });
+
+    it('mientras la recarga está en curso tras un error, vuelve a "buscando" y luego muestra la lista', () => {
+      const props = { ubicacion: UBICACION, onVolver: () => {}, onReintentarBanos: () => {} };
+      const { rerender } = render(<CrearBano {...props} banos={null} cargandoBanos={false} errorBanos="falló" />);
+      rerender(<CrearBano {...props} banos={null} cargandoBanos errorBanos={null} />);
+      expect(screen.getByRole('status')).toHaveTextContent(/buscando baños cerca/i);
+
+      rerender(<CrearBano {...props} banos={[BANO_A_40]} cargandoBanos={false} errorBanos={null} />);
+      expect(screen.getByRole('button', { name: /oxxo esquina/i })).toBeInTheDocument();
+    });
+
+    it('entrando desde modo zona: no congela los baños sin distancia; al activar la ubicación espera la carga y lista los cercanos', () => {
+      const BANO_ZONA = { ...BANO_A_40, distancia_metros: null };
+      const props = { onVolver: () => {}, onReintentarUbicacion: () => {} };
+      const { rerender } = render(<CrearBano {...props} ubicacion={null} banos={[BANO_ZONA]} cargandoBanos={false} />);
+      expect(screen.getByText(/sin tu ubicación/i)).toBeInTheDocument();
+
+      // Llega la ubicación: Mapa arranca la recarga en el mismo render.
+      rerender(<CrearBano {...props} ubicacion={UBICACION} banos={[BANO_ZONA]} cargandoBanos />);
+      expect(screen.getByRole('status')).toHaveTextContent(/buscando baños cerca/i);
+
+      rerender(<CrearBano {...props} ubicacion={UBICACION} banos={[BANO_A_40]} cargandoBanos={false} />);
+      expect(screen.getByRole('button', { name: /oxxo esquina/i })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+    });
+
+    it('un refresco que falla después de congelar la lista no la cambia por la pantalla de error', () => {
+      const props = { ubicacion: UBICACION, onVolver: () => {}, onReintentarBanos: () => {} };
+      const { rerender } = render(<CrearBano {...props} banos={[BANO_A_40]} />);
+      rerender(<CrearBano {...props} banos={null} cargandoBanos={false} errorBanos="falló" />);
+
+      expect(screen.getByRole('button', { name: /oxxo esquina/i })).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('al reabrir un baño de la lista, el Detalle usa los datos frescos de banos (p. ej. el promedio tras calificar)', async () => {
+      const usuario = userEvent.setup();
+      const props = { ubicacion: UBICACION, onVolver: () => {} };
+      const { rerender } = render(<CrearBano {...props} banos={[BANO_A_40]} />);
+
+      await usuario.click(screen.getByRole('button', { name: /oxxo esquina/i }));
+      rerender(<CrearBano {...props} banos={[{ ...BANO_A_40, calificacion_promedio: 4.5 }]} />);
+      await usuario.click(screen.getAllByRole('button', { name: /volver/i })[0]);
+      await usuario.click(screen.getByRole('button', { name: /oxxo esquina/i }));
+
+      expect(screen.getByRole('dialog', { name: /detalle de oxxo esquina/i })).toHaveTextContent('4.5');
+    });
+  });
 });

@@ -212,11 +212,11 @@ export default function Mapa({ onCerrarSesion }) {
 
   const sinBanos = banos !== null && banos.length === 0 && !cargando;
 
-  // Mismo patrón que `onCreado`: refresca `banos` para que el pin/lista
-  // reflejen el promedio recién recalculado. En modo zona (geolocalización
+  // Única forma de recargar `banos` tras calificar, crear o reintentar, para
+  // que pin/lista reflejen lo más reciente. En modo zona (geolocalización
   // denegada) no hay `ubicacion` — cae al mismo buscador por zona ya usado
   // en `buscarPorZona`.
-  function refrescarTrasCalificar() {
+  function recargarBanos() {
     if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
     else if (textoZona) cargarBanos({ zona: textoZona });
   }
@@ -259,17 +259,15 @@ export default function Mapa({ onCerrarSesion }) {
         </button>
       </header>
 
-      <main className="area-contenido">
+      <main className={`area-contenido${vista === 'lista' ? ' area-contenido--lista' : ''}`}>
         <div
           ref={contenedorRef}
           className={`mapa-lienzo${vista === 'lista' ? ' mapa-lienzo--oculto' : ''}`}
           data-testid="lienzo-mapa"
         />
 
-        {vista === 'lista' && (
-          <Lista banos={banos} onSeleccionar={(bano) => setOverlay({ tipo: 'detalle', bano })} />
-        )}
-
+        {/* La capa va antes que la Lista: en la vista de lista queda en el
+            flujo, arriba de las filas. */}
         <div className="capa-estado">
           {modo === 'localizando' && <p className="surface-tarjeta">Buscando dónde andas 📍…</p>}
 
@@ -311,6 +309,10 @@ export default function Mapa({ onCerrarSesion }) {
             </div>
           )}
         </div>
+
+        {vista === 'lista' && (
+          <Lista banos={banos} onSeleccionar={(bano) => setOverlay({ tipo: 'detalle', bano })} />
+        )}
       </main>
 
       <footer className="barra-inferior">
@@ -320,7 +322,7 @@ export default function Mapa({ onCerrarSesion }) {
       </footer>
 
       {overlay?.tipo === 'detalle' && (
-        <Detalle bano={overlay.bano} onVolver={() => setOverlay(null)} onCalificado={refrescarTrasCalificar} />
+        <Detalle bano={overlay.bano} onVolver={() => setOverlay(null)} onCalificado={recargarBanos} />
       )}
 
       {overlay?.tipo === 'perfil' && <Perfil onVolver={() => setOverlay(null)} onCerrarSesion={onCerrarSesion} />}
@@ -335,7 +337,10 @@ export default function Mapa({ onCerrarSesion }) {
           banos={banos}
           onVolver={() => setOverlay(null)}
           onReintentarUbicacion={reintentarUbicacion}
-          onCalificado={refrescarTrasCalificar}
+          cargandoBanos={cargando}
+          errorBanos={error}
+          onReintentarBanos={recargarBanos}
+          onCalificado={recargarBanos}
           onCreado={(nuevoBano) => {
             // Aterriza en el Detalle del baño recién creado (no de vuelta en
             // Mapa) — está a distancia 0 de sí mismo, exactamente donde
@@ -344,7 +349,7 @@ export default function Mapa({ onCerrarSesion }) {
               tipo: 'detalle',
               bano: { ...nuevoBano, calificacion_promedio: null, distancia_metros: 0 },
             });
-            if (ubicacion) cargarBanos({ lat: ubicacion.lat, lng: ubicacion.lng });
+            recargarBanos();
           }}
         />
       )}

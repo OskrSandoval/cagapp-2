@@ -165,6 +165,49 @@ describe('Mapa', () => {
     expect(css).toMatch(/\.capa-estado\s*{[^}]*left:\s*56px/);
   });
 
+  it('en la vista de Lista la capa de estado va en el flujo, arriba de la lista, sin taparla', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+    expect(screen.getByRole('main')).not.toHaveClass('area-contenido--lista');
+
+    await usuario.click(screen.getByRole('button', { name: /ver lista/i }));
+    expect(screen.getByRole('main')).toHaveClass('area-contenido--lista');
+
+    // La capa de estado va antes que la lista en el DOM, así en la columna
+    // flex de la vista de Lista queda arriba y no debajo de las filas.
+    const capa = screen.getByRole('main').querySelector('.capa-estado');
+    expect(capa.compareDocumentPosition(screen.getByTestId('lista-banos')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf-8');
+    expect(css).toMatch(/\.area-contenido--lista\s+\.capa-estado\s*{[^}]*position:\s*static/);
+    expect(css).toMatch(/\.area-contenido--lista\s+\.lista-banos\s*{[^}]*position:\s*static/);
+    expect(css).toMatch(/\.capa-estado:empty\s*{[^}]*display:\s*none/);
+    expect(css).toMatch(/\.area-contenido--lista\s+\.capa-estado\s*{[^}]*max-height:/);
+  });
+
+  it('si GET /banos falla, Agregar Baño muestra el error con Reintentar y reintentar vuelve a pedir los baños', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockRejectedValueOnce(new Error('No pudimos traer los baños 😬 — intenta de nuevo.'));
+    obtenerBanosCercanos.mockResolvedValueOnce([BANO]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await screen.findByRole('alert');
+
+    await usuario.click(screen.getByRole('button', { name: /agregar baño/i }));
+    const dialogo = screen.getByRole('dialog', { name: /agregar baño/i });
+    expect(within(dialogo).getByRole('alert')).toHaveTextContent(/no pudimos traer los baños/i);
+
+    await usuario.click(within(dialogo).getByRole('button', { name: /reintentar/i }));
+    await vi.waitFor(() => expect(obtenerBanosCercanos).toHaveBeenCalledTimes(2));
+    expect(obtenerBanosCercanos).toHaveBeenLastCalledWith({ lat: 19.4326, lng: -99.1332 });
+    expect(await within(screen.getByRole('dialog', { name: /agregar baño/i })).findByRole('button', { name: /plaza uno/i })).toBeInTheDocument();
+  });
+
   it('el pin muestra el número exacto además del color', () => {
     expect(etiquetaPin({ calificacion_promedio: 4.25 })).toBe('🚽 4.3★');
     expect(etiquetaPin({ calificacion_promedio: null })).toBe('🚽 sin calificaciones');
