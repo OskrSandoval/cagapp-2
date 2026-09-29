@@ -59,3 +59,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-2-barras-de-navegación-superior-e-inferior-responsivas.md`
   summary: "`.pantalla-login` (Login, EnEspera, CompletarPerfil, RecuperarAcceso, RestablecerContrasena) sigue usando `min-height: 100vh`, que en celular mide más que el área visible y agrega un scroll innecesario."
   evidence: Lo encontró el blind-hunter de la Story 5.2. Es un problema anterior, no causado por la 5.2 (que solo corrige `.mapa-pantalla`). Es low porque `min-height` no esconde contenido, solo agrega scroll. El arreglo es el mismo fallback `100vh` → `100dvh`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-enviar-sugerencias-y-reportar-bugs.md`
+  summary: "`POST /sugerencias` no tiene rate limit por usuario: una cuenta autorizada puede llenar la tabla que skr lee a mano."
+  evidence: "Lo reportaron el blind-hunter y el edge-case-hunter de la Story 5.3. Es el mismo hueco ya diferido para todos los endpoints autenticados (spec 3.1). Es medium porque el buzón se lee a mano, pero en la fase friends and family el riesgo es bajo."

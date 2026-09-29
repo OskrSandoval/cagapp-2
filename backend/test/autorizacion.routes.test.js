@@ -20,10 +20,16 @@ const calificacionesMock = vi.hoisted(() => ({
   obtenerCalificacionesPublicas: vi.fn(),
 }));
 
+const sugerenciasMock = vi.hoisted(() => ({
+  crearSugerencia: vi.fn(),
+  sugerenciasActivas: vi.fn(),
+}));
+
 vi.mock('../src/servicios/perfilesService.js', () => perfilesMock);
 vi.mock('../src/servicios/banosService.js', () => banosMock);
 vi.mock('../src/servicios/checkinsService.js', () => checkinsMock);
 vi.mock('../src/servicios/calificacionesService.js', () => calificacionesMock);
+vi.mock('../src/servicios/sugerenciasService.js', () => sugerenciasMock);
 
 vi.mock('../src/datos/supabaseAdmin.js', () => ({
   supabaseAdmin: {
@@ -47,6 +53,8 @@ const rutasConGate = [
   { metodo: 'get', ruta: '/calificaciones?bano_id=11111111-1111-1111-1111-111111111111' },
   { metodo: 'post', ruta: '/calificaciones' },
   { metodo: 'get', ruta: '/perfiles/yo/actividad' },
+  { metodo: 'get', ruta: '/sugerencias/estado' },
+  { metodo: 'post', ruta: '/sugerencias' },
 ];
 
 function serviciosDeNegocio() {
@@ -54,6 +62,7 @@ function serviciosDeNegocio() {
     ...Object.values(banosMock),
     ...Object.values(checkinsMock),
     ...Object.values(calificacionesMock),
+    ...Object.values(sugerenciasMock),
     perfilesMock.obtenerActividad,
   ];
 }

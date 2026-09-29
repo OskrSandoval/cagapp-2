@@ -38,11 +38,13 @@ vi.mock('../src/api/banosApi', () => ({ obtenerBanosCercanos: vi.fn(), crearBano
 vi.mock('../src/api/checkinsApi', () => ({ hacerCheckin: vi.fn() }));
 vi.mock('../src/api/calificacionesApi', () => ({ calificarBano: vi.fn() }));
 vi.mock('../src/api/perfilesApi', () => ({ obtenerMiActividad: vi.fn() }));
+vi.mock('../src/api/sugerenciasApi', () => ({ obtenerEstadoSugerencias: vi.fn(), enviarSugerencia: vi.fn() }));
 
 const { obtenerBanosCercanos, crearBano } = await import('../src/api/banosApi');
 const { hacerCheckin } = await import('../src/api/checkinsApi');
 const { calificarBano } = await import('../src/api/calificacionesApi');
 const { obtenerMiActividad } = await import('../src/api/perfilesApi');
+const { obtenerEstadoSugerencias, enviarSugerencia } = await import('../src/api/sugerenciasApi');
 const { default: Mapa } = await import('../src/paginas/Mapa.jsx');
 const { etiquetaPin, nivelCalificacion } = await import('../src/paginas/pinMapa.js');
 
@@ -99,6 +101,9 @@ describe('Mapa', () => {
     hacerCheckin.mockReset();
     calificarBano.mockReset();
     obtenerMiActividad.mockReset();
+    obtenerEstadoSugerencias.mockReset();
+    obtenerEstadoSugerencias.mockResolvedValue(false);
+    enviarSugerencia.mockReset();
     leaflet.default.marker.mockClear();
     leaflet.default.divIcon.mockClear();
     leaflet.default.tileLayer.mockClear();
@@ -494,6 +499,86 @@ describe('Mapa', () => {
     expect(screen.getByRole('dialog', { name: /^perfil$/i })).toBeInTheDocument();
     await vi.waitFor(() => expect(obtenerMiActividad).toHaveBeenCalled());
     expect(await screen.findByRole('button', { name: /^cerrar sesión$/i })).toBeInTheDocument();
+  });
+
+  it('con la fase activa muestra 💬 junto a Perfil en la Barra superior (Mapa y Lista) y abre Sugerencias con Volver', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    obtenerEstadoSugerencias.mockResolvedValue(true);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+
+    const superior = screen.getByRole('banner');
+    const botonSugerencias = await within(superior).findByRole('button', { name: /^sugerencias$/i });
+    const botonPerfil = within(superior).getByRole('button', { name: /^perfil$/i });
+    // Mismo grupo a la izquierda, justo después de Perfil.
+    expect(botonPerfil.parentElement).toBe(botonSugerencias.parentElement);
+    expect(botonPerfil.nextElementSibling).toBe(botonSugerencias);
+    expect(botonSugerencias).toHaveClass('control-barra', 'control-icono');
+
+    await usuario.click(within(superior).getByRole('button', { name: /ver lista/i }));
+    expect(within(screen.getByRole('banner')).getByRole('button', { name: /^sugerencias$/i })).toBeInTheDocument();
+
+    await usuario.click(within(screen.getByRole('banner')).getByRole('button', { name: /^sugerencias$/i }));
+    expect(screen.getByRole('dialog', { name: /^sugerencias$/i })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /^volver$/i }));
+    expect(screen.queryByRole('dialog', { name: /^sugerencias$/i })).not.toBeInTheDocument();
+  });
+
+  it('con la fase apagada no hay botón 💬 y la barra se reacomoda sin hueco (solo Perfil en el grupo)', async () => {
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    obtenerEstadoSugerencias.mockResolvedValue(false);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerEstadoSugerencias).toHaveBeenCalled());
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+
+    const superior = screen.getByRole('banner');
+    expect(within(superior).queryByRole('button', { name: /^sugerencias$/i })).not.toBeInTheDocument();
+    const botonPerfil = within(superior).getByRole('button', { name: /^perfil$/i });
+    expect(botonPerfil.parentElement.children).toHaveLength(1);
+  });
+
+  it('si el estado del buzón falla o sigue cargando, el botón 💬 no se muestra', async () => {
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    let resolverEstado;
+    obtenerEstadoSugerencias.mockReturnValue(new Promise((resolver) => { resolverEstado = resolver; }));
+
+    const { unmount } = render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: /^sugerencias$/i })).not.toBeInTheDocument();
+    unmount();
+    resolverEstado(true);
+
+    obtenerEstadoSugerencias.mockRejectedValue(new Error('boom'));
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(obtenerEstadoSugerencias).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    expect(screen.queryByRole('button', { name: /^sugerencias$/i })).not.toBeInTheDocument();
+  });
+
+  it('si el buzón se cierra con la app abierta (POST 404), al volver ya no está el botón 💬', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+    obtenerEstadoSugerencias.mockResolvedValue(true);
+    enviarSugerencia.mockRejectedValue(Object.assign(new Error('El buzón de sugerencias ya cerró 📪'), { status: 404 }));
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+
+    await usuario.click(await screen.findByRole('button', { name: /^sugerencias$/i }));
+    await usuario.type(screen.getByLabelText(/tu mensaje/i), 'Hola');
+    await usuario.click(screen.getByRole('button', { name: /enviar/i }));
+    await screen.findByText('El buzón de sugerencias ya cerró 📪');
+
+    await usuario.click(screen.getAllByRole('button', { name: /^volver$/i })[0]);
+
+    expect(screen.queryByRole('dialog', { name: /^sugerencias$/i })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /^sugerencias$/i })).not.toBeInTheDocument();
   });
 
   it('limpia watchPosition con clearWatch al desmontar', async () => {
