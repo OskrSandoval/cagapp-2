@@ -7,6 +7,8 @@ import Lista from './Lista';
 import Detalle from './Detalle';
 import CrearBano from './CrearBano';
 import Perfil from './Perfil';
+import Sugerencias from './Sugerencias';
+import { obtenerEstadoSugerencias } from '../api/sugerenciasApi';
 
 const CENTRO_CDMX = [19.4326, -99.1332];
 
@@ -52,12 +54,28 @@ export default function Mapa({ onCerrarSesion }) {
   // garantizado por construcción (un solo estado) en vez de por convención
   // (3 booleanos/objetos independientes que en teoría podían pisarse; retro
   // Épica 2, action item #1). `null` | `{ tipo: 'detalle', bano }` |
-  // `{ tipo: 'crearBano' }` | `{ tipo: 'perfil' }`. Ninguno desmonta el mapa
-  // de Leaflet debajo (Stories 2.3/2.4/4.1). El `bano` de `'detalle'` es la
+  // `{ tipo: 'crearBano' }` | `{ tipo: 'perfil' }` | `{ tipo: 'sugerencias' }`.
+  // Ninguno desmonta el mapa de Leaflet debajo (Stories 2.3/2.4/4.1). El `bano` de `'detalle'` es la
   // misma referencia que vive en `banos` (no se clona) — solo "parece"
   // congelada porque `banos` se reemplaza por completo en cada refetch,
   // nunca se muta en su lugar (ver spec 2.3). Estado local, sin router.
   const [overlay, setOverlay] = useState(null);
+  // Switch de la fase "friends and family": el botón 💬 solo se
+  // muestra cuando el backend confirma `activas: true` — mientras carga o
+  // ante cualquier error queda oculto (nunca un botón que después falle).
+  const [sugerenciasActivas, setSugerenciasActivas] = useState(false);
+
+  useEffect(() => {
+    let vigente = true;
+    obtenerEstadoSugerencias()
+      .then((activas) => {
+        if (vigente) setSugerenciasActivas(activas === true);
+      })
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, []);
 
   // Inicializa Leaflet una sola vez (sin wrapper de React).
   useEffect(() => {
@@ -209,14 +227,27 @@ export default function Mapa({ onCerrarSesion }) {
           se encima con el zoom de Leaflet y la barra inferior siempre queda
           dentro del viewport visible del celular. */}
       <header className="barra-superior">
-        <button
-          type="button"
-          className="control-barra control-icono"
-          aria-label="Perfil"
-          onClick={() => setOverlay({ tipo: 'perfil' })}
-        >
-          👤
-        </button>
+        <div className="barra-superior-grupo">
+          <button
+            type="button"
+            className="control-barra control-icono"
+            aria-label="Perfil"
+            onClick={() => setOverlay({ tipo: 'perfil' })}
+          >
+            👤
+          </button>
+
+          {sugerenciasActivas && (
+            <button
+              type="button"
+              className="control-barra control-icono"
+              aria-label="Sugerencias"
+              onClick={() => setOverlay({ tipo: 'sugerencias' })}
+            >
+              💬
+            </button>
+          )}
+        </div>
 
         <button
           type="button"
@@ -293,6 +324,10 @@ export default function Mapa({ onCerrarSesion }) {
       )}
 
       {overlay?.tipo === 'perfil' && <Perfil onVolver={() => setOverlay(null)} onCerrarSesion={onCerrarSesion} />}
+
+      {overlay?.tipo === 'sugerencias' && (
+        <Sugerencias onVolver={() => setOverlay(null)} onBuzonCerrado={() => setSugerenciasActivas(false)} />
+      )}
 
       {overlay?.tipo === 'crearBano' && (
         <CrearBano
