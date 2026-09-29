@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import userEvent from '@testing-library/user-event';
 
 const leaflet = vi.hoisted(() => {
@@ -115,6 +117,47 @@ describe('Mapa', () => {
     expect(leaflet.default.divIcon.mock.calls[0][0].html).toContain('sin calificaciones');
     expect(leaflet.default.tileLayer.mock.calls[0][1].attribution).toContain('OpenStreetMap');
     expect(screen.queryByLabelText(/zona o colonia/i)).not.toBeInTheDocument();
+  });
+
+  it('Mapa y Lista tienen Barra superior (Perfil, Toggle) y Barra inferior (solo Agregar Baño), con el mapa entre ambas', async () => {
+    const usuario = userEvent.setup();
+    geolocalizacion({ concede: true });
+    obtenerBanosCercanos.mockResolvedValue([BANO]);
+
+    render(<Mapa onCerrarSesion={() => {}} />);
+    await vi.waitFor(() => expect(leaflet.default.marker).toHaveBeenCalled());
+
+    const superior = screen.getByRole('banner');
+    expect(within(superior).getByRole('button', { name: /perfil/i })).toBeInTheDocument();
+    expect(within(superior).getByRole('button', { name: /ver lista/i })).toBeInTheDocument();
+
+    const inferior = screen.getByRole('contentinfo');
+    expect(within(inferior).getAllByRole('button')).toHaveLength(1);
+    expect(within(inferior).getByRole('button', { name: /agregar baño/i })).toBeInTheDocument();
+
+    const area = screen.getByRole('main');
+    expect(area).toContainElement(screen.getByTestId('lienzo-mapa'));
+    expect(superior).not.toContainElement(screen.getByTestId('lienzo-mapa'));
+
+    await usuario.click(within(superior).getByRole('button', { name: /ver lista/i }));
+    expect(area).toContainElement(screen.getByTestId('lista-banos'));
+    expect(within(screen.getByRole('banner')).getByRole('button', { name: /ver mapa/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('contentinfo')).getByRole('button', { name: /agregar baño/i })).toBeInTheDocument();
+  });
+
+  it('el layout usa altura de viewport dinámica para que la Barra inferior no quede bajo la barra del navegador, sin tapar el zoom', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf-8');
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf-8');
+
+    expect(css).toMatch(/\.mapa-pantalla\s*{[^}]*height:\s*100dvh/);
+    expect(css).toMatch(/\.barra-inferior\s*{[^}]*env\(safe-area-inset-bottom/);
+    expect(css).toMatch(/\.barra-superior\s*{[^}]*env\(safe-area-inset-top/);
+    expect(css).not.toMatch(/\.fab-agregar\s*{[^}]*position:\s*absolute/);
+    // Sin `cover` el navegador ya respeta el notch en todas las pantallas;
+    // `cover` exigiría safe areas también en overlays y login.
+    expect(html).not.toMatch(/viewport-fit=cover/);
+    // La capa de estado no debe taparle el zoom de Leaflet (arriba a la izquierda).
+    expect(css).toMatch(/\.capa-estado\s*{[^}]*left:\s*56px/);
   });
 
   it('el pin muestra el número exacto además del color', () => {
