@@ -8,6 +8,14 @@ const serviciosMock = vi.hoisted(() => ({
 
 vi.mock('../src/servicios/calificacionesService.js', () => serviciosMock);
 
+const perfilesMock = vi.hoisted(() => ({
+  // Gate "friends and family" (middleware verificarAutorizado): por defecto
+  // el usuario de prueba está autorizado.
+  obtenerPerfilPorId: vi.fn(async () => ({ id: 'user-1', autorizado: true })),
+}));
+
+vi.mock('../src/servicios/perfilesService.js', () => perfilesMock);
+
 vi.mock('../src/datos/supabaseAdmin.js', () => ({
   supabaseAdmin: {
     auth: {
