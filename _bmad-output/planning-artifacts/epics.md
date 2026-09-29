@@ -23,12 +23,14 @@ FR3: Un Usuario puede recuperar el acceso a su cuenta vía correo (no aplica a c
 FR4: Un Usuario con Cuenta (autenticado — el login es obligatorio, no hay modo anónimo) puede ver un mapa centrado en su ubicación con los baños cercanos marcados por calificación promedio.
 FR5: Un Usuario con Cuenta puede alternar del mapa a una lista de baños ordenada por cercanía.
 FR6: Un Usuario con Cuenta puede abrir el detalle de un baño (nombre, ubicación, tipo, calificación promedio).
-FR7: Antes de crear un baño nuevo, el sistema obliga a buscar duplicados existentes en un radio de 1.5km.
+FR7: Antes de crear un baño nuevo, el sistema muestra una lista de los baños existentes a ≤200m, ordenados por cercanía; tocar uno abre su Detalle y la acción explícita "Ninguno es este, crear nuevo" habilita el formulario. Si no hay ninguno, pasa directo al formulario. *(Actualizado 2026-09-29: antes era un bloqueo total a ≤1.5km.)*
 FR8: Un Usuario con Cuenta puede registrar un baño nuevo (nombre, ubicación, tipo de lugar) tras confirmar que no existía.
 FR9: Un Usuario puede hacer check-in en un baño solo si su ubicación está dentro de 150m del baño, con manejo explícito de precisión de GPS insuficiente (reintento) vs. fuera de rango.
 FR10: Un Usuario solo puede calificar (1-5 estrellas) un baño inmediatamente después de un check-in exitoso; una nueva calificación reemplaza cuál cuenta como vigente, sin borrar el historial.
 FR11: Un Usuario con Cuenta puede ver, en su Perfil, su propia actividad (baños en los que hizo check-in y su calificación vigente) — nunca la de otros usuarios.
 FR12: Un Usuario con Cuenta puede ver, en el Detalle de un Baño, una lista pública de calificaciones de otros usuarios (nombre para mostrar, estrellas, fecha) — sin exponer identificadores internos.
+FR13: Un Usuario Autorizado puede enviar una Sugerencia (tipo bug o sugerencia + texto libre; usuario y fecha automáticos) desde un botón 💬 en la barra superior; es privada, el fundador la lee en la base de datos, y el botón existe solo mientras la Fase Friends and Family esté activa (switch para apagarlo). Si el envío falla, el texto no se pierde.
+FR14: El registro es abierto, pero solo un Usuario Autorizado (aprobado manualmente por el fundador en la BD) usa la app; uno no autorizado ve la pantalla de Espera y se le cierra la sesión a los 30s; la restricción también se aplica en el backend. *(Ya implementado — spec-acceso-friends-and-family, spec-gate-autorizado-backend.)*
 
 ### NonFunctional Requirements
 
@@ -38,6 +40,7 @@ NFR3: Privacidad — la ubicación exacta del dispositivo de un Usuario nunca se
 NFR4: Seguridad de autenticación — identidad, contraseñas y expiración de sesión delegadas por completo a Supabase Auth; el backend nunca almacena contraseñas.
 NFR5: Row Level Security habilitado (deny-by-default) en las tablas de negocio (`baños`, `calificaciones`, `perfiles`) como defensa en profundidad, ya que el backend accede vía `service role key`.
 NFR6: Lanzamiento solo en español, enfocado en CDMX (sin selector de idioma en v1).
+NFR7: Las acciones principales de Mapa/Lista (en especial "Agregar Baño") son visibles y tocables sin scroll en pantallas de celular comunes, incluidas las más chicas (≈360×640).
 
 ### Additional Requirements
 
@@ -45,7 +48,7 @@ NFR6: Lanzamiento solo en español, enfocado en CDMX (sin selector de idioma en 
 - Paradigma backend: Arquitectura en Capas (`rutas → controladores → servicios → acceso a datos`), con dirección de dependencia de una sola vía (AD-2).
 - Límite frontend/backend: el frontend solo usa el SDK de Supabase para login/sesión; toda la demás lógica de negocio pasa por la API de Node, que usa la `service role key` (AD-1).
 - Modelo de datos: tabla `calificaciones` append-only (solo `INSERT`, columna `secuencia` bigserial para desempate de timestamps); tabla `perfiles` separada de `auth.users` de Supabase, creada explícitamente vía `POST /perfiles` tras el registro (no vía trigger de base de datos); tabla `baños` con campo `zona` para el fallback de búsqueda por zona (AD-3, AD-10).
-- Cálculo de distancia: una sola función Haversine compartida en la capa de servicios, usada tanto para el radio de check-in (150m) como para la búsqueda de duplicados (1.5km) (AD-4).
+- Cálculo de distancia: una sola función Haversine compartida en la capa de servicios, usada tanto para el radio de check-in (150m) como para la búsqueda de duplicados (1.5km originalmente; 200m desde FR7 actualizado) (AD-4).
 - Manejo de precisión de GPS: el frontend envía `{lat, lng, accuracy}` en cada intento de check-in; el backend distingue "fuera de rango" de "precisión insuficiente" (AD-8).
 - Autenticación entre frontend/backend: JWT de Supabase enviado como `Authorization: Bearer <token>`, verificado por el backend en cada request protegido (AD-5, AD-12).
 - Forma de respuestas de la API: recurso directo en JSON + código HTTP, errores como `{ "error": "mensaje" }` (AD-7). La lista pública de FR12 solo expone `{nombre_para_mostrar, estrellas, created_at}` (AD-11).
@@ -58,13 +61,15 @@ NFR6: Lanzamiento solo en español, enfocado en CDMX (sin selector de idioma en 
 
 UX-DR1: Implementar la paleta de color "Naranja Foursquare" con los tokens exactos de `DESIGN.md` (bg #FFFFFF, surface #FFF8F3, primary #D53C19, primary-ink #FFFFFF, text #2B1B12, muted #8A6A5A, success #1F7A45, success-surface #E6F4EB, success-border #BFE6CC, warning #CB3E48, border #F2D9CC, star-off #E8D9CE) — valores ya corregidos para pasar contraste WCAG AA.
 UX-DR2: Tipografía del sistema (sin webfont propia) con 7 roles por peso/tamaño: display (24px/800), heading (16px/800), label (13px/700), button (15px/800), body (14px/400), meta (12.5px/400), caption (11px/400).
-UX-DR3: Implementar los siguientes componentes con su especificación visual (DESIGN.md) y comportamental (EXPERIENCE.md) — nombres canónicos, usar exactamente estos: Wordmark/logo, Pestañas segmentadas, Campo de texto, Botón primario, Botón social, Ícono de Perfil, Toggle Mapa/Lista, FAB Agregar Baño, Pin de mapa, Tarjeta hero de Detalle, Chip de rango, Banner de confirmación, Etiqueta de calificación, Selector de calificación, Lista de referencia de calificaciones, Paso de búsqueda de duplicados, Formulario de creación, Lista "Lo que dice la gente".
-UX-DR4: Navegación sin barra de navegación inferior — Ícono de Perfil fijo arriba-izquierda, Toggle Mapa/Lista fijo arriba-derecha (ambos flotando sobre el mapa), FAB Agregar Baño flotante centrado abajo. Navegación de detalle por flecha de retroceso, un nivel a la vez.
-UX-DR5: Implementar todos los siguientes Estados definidos en EXPERIENCE.md § State Patterns: cold-open no autenticado (redirige a Login), correo duplicado en registro, credenciales incorrectas, contraseña débil, permiso de geolocalización denegado (fallback buscar por zona), sin baños cercanos (invita a agregar el primero), baño sin calificaciones todavía, dentro de rango de check-in, fuera de rango de check-in, precisión de GPS insuficiente (ofrece reintentar), check-in exitoso, intento de calificar sin check-in previo (rechazado), re-check-in/re-calificar (reemplaza vigente), sesión persistente entre visitas, Crear Baño con duplicado encontrado, error de validación en formulario de creación, confirmación de creación exitosa, Perfil vacío (usuario nuevo), Mapa en estado de carga, Detalle con deep link inválido/baño inexistente, Lista comparte estado vacío del Mapa.
+UX-DR3: Implementar los siguientes componentes con su especificación visual (DESIGN.md) y comportamental (EXPERIENCE.md) — nombres canónicos, usar exactamente estos: Wordmark/logo, Pestañas segmentadas, Campo de texto, Botón primario, Botón social, Ícono de Perfil, Toggle Mapa/Lista, Botón de Sugerencias, Botón Agregar Baño (antes FAB), Pin de mapa, Tarjeta hero de Detalle, Chip de rango, Banner de confirmación, Etiqueta de calificación, Selector de calificación, Lista de referencia de calificaciones, Lista de baños cercanos (antes Paso de búsqueda de duplicados), Formulario de creación, Lista "Lo que dice la gente".
+UX-DR4: *(Actualizado 2026-09-29.)* Mapa y Lista enmarcados por dos barras sólidas, sin controles flotando sobre el mapa: Barra superior (Ícono de Perfil, Botón de Sugerencias 💬 solo en Fase Friends and Family, Toggle Mapa/Lista) y Barra inferior de una sola acción (Botón Agregar Baño — no es tab bar). Layout con `100dvh` + `env(safe-area-inset-*)`. Navegación de detalle por flecha de retroceso, un nivel a la vez.
+UX-DR5: Implementar todos los siguientes Estados definidos en EXPERIENCE.md § State Patterns: cold-open no autenticado (redirige a Login), correo duplicado en registro, credenciales incorrectas, contraseña débil, permiso de geolocalización denegado (fallback buscar por zona), sin baños cercanos (invita a agregar el primero), baño sin calificaciones todavía, dentro de rango de check-in, fuera de rango de check-in, precisión de GPS insuficiente (ofrece reintentar), check-in exitoso, intento de calificar sin check-in previo (rechazado), re-check-in/re-calificar (reemplaza vigente), sesión persistente entre visitas, Crear Baño con baños a ≤200m encontrados / sin baños a ≤200m, Sugerencia enviada / texto vacío / envío fallido (conserva texto), error de validación en formulario de creación, confirmación de creación exitosa, Perfil vacío (usuario nuevo), Mapa en estado de carga, Detalle con deep link inválido/baño inexistente, Lista comparte estado vacío del Mapa.
 UX-DR6: Accesibilidad — cumplir contraste AA con los tokens corregidos de UX-DR1; tap targets ≥24×24px mínimo (pines de mapa necesitan área de toque invisible ampliada) y ≥40-44px para controles principales (botón de retroceso, ícono de Perfil); asociar `<label for>`/`<input id>` en formularios; `aria-label` en botones de solo ícono (Perfil, retroceso); campo de contraseña con `type="password"` real y `autocomplete` correcto.
 UX-DR7: Tono "chusco" (divertido, con emojis en momentos clave, nunca corporativo neutro) en toda la copy de producto — usar las cadenas de ejemplo ya definidas en EXPERIENCE.md § Voice and Tone (tabla Do/Don't) y las 5 captions de calificación (💩 Un desastre / 😬 Sobrevivible, de panza / 😐 Normalito, ni fu ni fa / 🙂 Bien limpio, sin drama / 🤩 Limpio, amplio y hasta huele bien).
 UX-DR8: Usar los 3 mockups HTML aprobados en `ux-cagapp2.0-2026-09-11/mockups/` (key-login.html, key-mapa.html, key-detalle-checkin.html) como referencia visual pixel-level para esas pantallas específicas; el resto de pantallas (Lista, Crear Baño, Perfil) se construyen desde las tablas de EXPERIENCE.md/DESIGN.md sin mockup — no está definido a nivel de píxel.
 UX-DR9: Sección Inspiration & Anti-patterns de EXPERIENCE.md — el patrón de IA está inspirado en el check-in de Foursquare; NO modelar la app según Flush (sin personalidad), SitOrSquat (dependencia de un solo patrocinador), ni Refuge Restrooms (nicho único) — decisiones de diseño ya descartadas explícitamente.
+
+UX-DR10: Pantallas nuevas sin mockup (Sugerencias, Lista de baños cercanos, barras superior/inferior) se construyen desde EXPERIENCE.md/DESIGN.md con los mismos tokens y patrones de tarjeta/pill/fila de Lista — no introducir patrones nuevos.
 
 ### FR Coverage Map
 
@@ -80,6 +85,10 @@ FR9: Epic 3 - Check-in con verificación de ubicación
 FR10: Epic 3 - Calificar tras check-in
 FR11: Epic 4 - Ver mi actividad (Perfil)
 FR12: Epic 4 - Ver calificaciones de otros usuarios
+FR7 (actualizado): Epic 5 - Lista de baños cercanos a ≤200m
+FR13: Epic 5 - Sugerencias y bugs
+FR14: Implementado fuera de épicas (spec-acceso-friends-and-family, spec-gate-autorizado-backend) — documentado, sin historia nueva
+NFR7: Epic 5 - Barras de navegación responsivas
 
 ## Epic List
 
@@ -98,6 +107,10 @@ Un usuario puede hacer check-in verificado por ubicación en un baño y, solo de
 ### Epic 4: Actividad y Comunidad
 Un usuario puede ver su propia actividad de calificación (Perfil) y ver públicamente qué calificaron otros usuarios en el detalle de cada baño.
 **FRs covered:** FR11, FR12
+
+### Epic 5: Pulido para Friends and Family
+Los usuarios friends and family pueden agregar todos los baños que encuentran (no solo uno por zona), usar la app cómodamente en cualquier celular sin que los controles se encimen, y mandarle a skr bugs y sugerencias desde la propia app.
+**FRs covered:** FR7 (actualizado), FR13 · **NFRs:** NFR7
 
 ## Epic 1: Cuenta y Acceso
 
@@ -358,3 +371,111 @@ So that tenga más contexto antes de decidir ir.
 **Given** que el baño no tiene calificaciones todavía
 **When** veo esa sección
 **Then** se aplica el mismo estado vacío del Detalle
+
+## Epic 5: Pulido para Friends and Family
+
+Los usuarios friends and family pueden agregar todos los baños que encuentran, usar la app cómodamente en cualquier celular y reportar bugs o sugerencias sin salir de CagApp. Corrige los dos bugs reportados por skr (creación bloqueada por el radio de 1.5km; botón de agregar invisible en celular) y agrega el buzón de sugerencias.
+
+### Story 5.1: Lista de baños cercanos antes de crear uno nuevo
+
+As a usuario autorizado,
+I want ver los baños que ya existen muy cerca y decidir yo si el mío es uno de ellos,
+So that pueda agregar un baño nuevo aunque haya otros en la zona, sin duplicar uno que ya existe.
+
+**Acceptance Criteria:**
+
+**Given** que toco "Agregar Baño" con mi ubicación conocida
+**When** hay baños registrados a ≤200m de mí
+**Then** veo una lista con todos ellos ordenados por cercanía, cada uno con nombre, tipo de lugar y distancia
+
+**Given** que veo la lista de baños cercanos
+**When** toco uno de ellos
+**Then** se abre su Detalle, donde puedo hacer check-in
+
+**Given** que veo la lista de baños cercanos
+**When** toco "Ninguno es este, crear nuevo"
+**Then** se abre el formulario de creación (nombre, zona, tipo de lugar) con la ubicación de mi dispositivo
+
+**Given** que no hay ningún baño a ≤200m de mí
+**When** toco "Agregar Baño"
+**Then** paso directo al formulario con una nota en tono de marca de que no hay baños a la redonda
+
+**Given** que hay un baño a más de 200m pero a menos de 1.5km (ej. el Jajarro)
+**When** toco "Agregar Baño"
+**Then** ese baño no me bloquea ni aparece en la lista, y puedo crear el mío
+
+**Given** que creo un baño desde este flujo
+**When** se guarda
+**Then** queda visible de inmediato en mapa y lista y aterrizo en su Detalle (comportamiento actual de la Story 2.4, sin cambios)
+
+### Story 5.2: Barras de navegación superior e inferior responsivas
+
+As a usuario autorizado en mi celular,
+I want que Perfil, el cambio de vista y "Agregar Baño" estén en barras fijas que no se encimen con el mapa,
+So that siempre pueda ver y tocar "Agregar Baño" y usar el zoom del mapa sin tocar otra cosa por error.
+
+**Acceptance Criteria:**
+
+**Given** que estoy en Mapa o Lista
+**When** se muestra la pantalla
+**Then** veo una Barra superior con el Ícono de Perfil a la izquierda y el Toggle Mapa/Lista a la derecha, y una Barra inferior con solo el Botón Agregar Baño; el contenido del mapa/lista queda entre ambas
+
+**Given** que estoy en Mapa
+**When** uso los controles de zoom del mapa
+**Then** ningún control de navegación se encima con ellos
+
+**Given** un celular de ≈360×640 (y también 375×667 y 390×844), con la barra del navegador móvil visible
+**When** abro Mapa o Lista
+**Then** el Botón Agregar Baño se ve completo y es tocable sin hacer scroll (layout con `100dvh` y safe areas, no `100vh`)
+
+**Given** que estoy en Lista con muchos baños
+**When** hago scroll
+**Then** solo se desplaza la lista; ambas barras quedan fijas
+
+**Given** que abro Detalle, Crear Baño o Perfil
+**When** se muestra la pantalla
+**Then** no aparecen las dos barras; se navega con la flecha de retroceso como hoy
+
+**Given** los controles de las barras
+**When** los inspecciono
+**Then** tienen áreas táctiles ≥44×44px y los de solo ícono llevan `aria-label`
+
+### Story 5.3: Enviar sugerencias y reportar bugs
+
+As a usuario autorizado en la fase friends and family,
+I want mandarle a skr un bug o una sugerencia desde la app,
+So that pueda ayudar a mejorar CagApp en el momento en que noto algo.
+
+**Acceptance Criteria:**
+
+**Given** que la Fase Friends and Family está activa y estoy en Mapa o Lista
+**When** veo la Barra superior
+**Then** hay un Botón de Sugerencias 💬 junto al Ícono de Perfil, con `aria-label="Sugerencias"`
+
+**Given** que toco el Botón de Sugerencias
+**When** se abre la pantalla de Sugerencias
+**Then** puedo elegir el tipo (bug o sugerencia), escribir un texto libre y enviarlo; tiene flecha de retroceso
+
+**Given** que envío con texto válido
+**When** se guarda
+**Then** queda registrada con mi usuario, el tipo, el texto y la fecha (tomados del servidor/JWT, no del formulario), y veo una confirmación en tono de marca
+
+**Given** que intento enviar con el texto vacío
+**When** toco enviar
+**Then** veo un error en línea en el campo, el foco va ahí y no se envía
+
+**Given** que el envío falla (red o servidor)
+**When** veo el error
+**Then** mi texto y el tipo elegido siguen ahí para reintentar
+
+**Given** que soy otro usuario
+**When** uso cualquier parte de la app o de la API
+**Then** nunca puedo ver sugerencias ajenas (tabla con RLS deny-by-default; sin endpoint de lectura)
+
+**Given** que skr apaga el switch de la Fase Friends and Family
+**When** cualquier usuario abre Mapa o Lista
+**Then** el Botón de Sugerencias no aparece (la barra se reacomoda sin hueco) y el endpoint de envío rechaza nuevas sugerencias
+
+**Given** que un usuario no autorizado llama directamente al endpoint de sugerencias
+**When** envía la petición
+**Then** se rechaza igual que el resto de endpoints protegidos por el gate de autorización

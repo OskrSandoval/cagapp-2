@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-29-2026 09:10
+last_updated: 09-29-2026 11:15
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -57,6 +57,12 @@ development_status:
   4-1-ver-mi-actividad-en-el-perfil: done
   4-2-ver-calificaciones-de-otros-usuarios-en-un-baño: done
   epic-4-retrospective: done
+
+  epic-5: in-progress
+  5-1-lista-de-baños-cercanos-antes-de-crear-uno-nuevo: review
+  5-2-barras-de-navegación-superior-e-inferior-responsivas: backlog
+  5-3-enviar-sugerencias-y-reportar-bugs: backlog
+  epic-5-retrospective: optional
 action_items:
   - id: "epic-1-retro-item-1-agregar-un-catch-alrededor-de-la-llamada"
     epic: 1

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../src/api/banosApi', () => ({ crearBano: vi.fn() }));
@@ -10,7 +10,9 @@ const { default: CrearBano } = await import('../src/paginas/CrearBano.jsx');
 const UBICACION = { lat: 19.4326, lng: -99.1332 };
 
 const BANO_LEJOS = { id: '1', nombre: 'Lejos', tipo_lugar: 'Café', zona: 'Polanco', distancia_metros: 5000 };
-const BANO_CERCA = { id: '2', nombre: 'Cerca', tipo_lugar: 'Plaza', zona: 'Centro', distancia_metros: 800 };
+const BANO_A_800 = { id: '2', nombre: 'El Jajarro', tipo_lugar: 'Bar', zona: 'Centro', distancia_metros: 800 };
+const BANO_A_150 = { id: '3', nombre: 'Fonda Doña Lupe', tipo_lugar: 'Restaurante', zona: 'Centro', distancia_metros: 150 };
+const BANO_A_40 = { id: '4', nombre: 'OXXO Esquina', tipo_lugar: 'Tienda', zona: 'Centro', distancia_metros: 40 };
 
 describe('CrearBano', () => {
   beforeEach(() => {
@@ -40,23 +42,111 @@ describe('CrearBano', () => {
     expect(onVolver).toHaveBeenCalledTimes(1);
   });
 
-  it('con un baño existente a <=1.5km muestra ese baño (Detalle) y no ofrece crear de todos modos', () => {
-    render(<CrearBano ubicacion={UBICACION} banos={[BANO_LEJOS, BANO_CERCA]} onVolver={() => {}} />);
+  it('lista todos los baños a <=200m ordenados por cercanía, con tipo de lugar y distancia, sin abrir el formulario', () => {
+    render(
+      <CrearBano ubicacion={UBICACION} banos={[BANO_LEJOS, BANO_A_150, BANO_A_40]} onVolver={() => {}} />
+    );
 
-    expect(screen.getByRole('dialog', { name: /detalle de cerca/i })).toBeInTheDocument();
+    const filas = within(screen.getByRole('list', { name: /baños cerca de ti/i })).getAllByRole('listitem');
+    expect(filas).toHaveLength(2);
+    expect(filas[0]).toHaveTextContent(/oxxo esquina/i);
+    expect(filas[0]).toHaveTextContent(/tienda · 40 m/i);
+    expect(filas[1]).toHaveTextContent(/fonda doña lupe/i);
+    expect(filas[1]).toHaveTextContent(/restaurante · 150 m/i);
+    expect(screen.queryByText(/lejos/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/crear de todos modos/i)).not.toBeInTheDocument();
   });
 
-  it('un baño a exactamente 1500m cuenta como duplicado (límite inclusivo <=)', () => {
-    const BANO_AL_LIMITE = { id: '3', nombre: 'Al límite', tipo_lugar: 'Parque', zona: 'Doctores', distancia_metros: 1500 };
+  it('un baño a exactamente 200m aparece en la lista (límite inclusivo <=)', () => {
+    const BANO_AL_LIMITE = { id: '5', nombre: 'Al límite', tipo_lugar: 'Parque', zona: 'Doctores', distancia_metros: 200 };
     render(<CrearBano ubicacion={UBICACION} banos={[BANO_AL_LIMITE]} onVolver={() => {}} />);
 
-    expect(screen.getByRole('dialog', { name: /detalle de al límite/i })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /al límite/i })).toBeInTheDocument();
   });
 
-  it('sin ningún baño a <=1.5km habilita el formulario', () => {
+  it('un baño a más de 200m (aunque esté a <1.5km) no bloquea: pasa directo al formulario con nota', () => {
+    render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_800]} onVolver={() => {}} />);
+
+    expect(screen.queryByRole('list', { name: /baños cerca de ti/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/no hay baños a la redonda/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
+  });
+
+  it('"Ninguno es este, crear nuevo" abre el formulario', async () => {
+    const usuario = userEvent.setup();
+    render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40]} onVolver={() => {}} />);
+
+    await usuario.click(screen.getByRole('button', { name: /ninguno es este, crear nuevo/i }));
+
+    expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: /baños cerca de ti/i })).not.toBeInTheDocument();
+  });
+
+  it('tocar un baño de la lista abre su Detalle, y Volver regresa a la lista (no cierra el flujo)', async () => {
+    const usuario = userEvent.setup();
+    const onVolver = vi.fn();
+    render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40, BANO_A_150]} onVolver={onVolver} />);
+
+    await usuario.click(screen.getByRole('button', { name: /fonda doña lupe/i }));
+    expect(screen.getByRole('dialog', { name: /detalle de fonda doña lupe/i })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+    expect(onVolver).not.toHaveBeenCalled();
+    expect(screen.getByRole('list', { name: /baños cerca de ti/i })).toBeInTheDocument();
+  });
+
+  it('Volver desde la lista cierra el flujo', async () => {
+    const usuario = userEvent.setup();
+    const onVolver = vi.fn();
+    render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40]} onVolver={onVolver} />);
+
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+    expect(onVolver).toHaveBeenCalledTimes(1);
+  });
+
+  it('mientras banos no ha cargado (null) muestra "buscando" en vez del formulario o la nota de sin baños', () => {
+    render(<CrearBano ubicacion={UBICACION} banos={null} onVolver={() => {}} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(/buscando baños cerca/i);
+    expect(screen.queryByLabelText(/^nombre$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no hay baños a la redonda/i)).not.toBeInTheDocument();
+  });
+
+  it('la lista se fija con la primera carga: si banos cambia o falla después, Volver desde Detalle sigue regresando a la misma lista', async () => {
+    const usuario = userEvent.setup();
+    const { rerender } = render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40]} onVolver={() => {}} />);
+
+    await usuario.click(screen.getByRole('button', { name: /oxxo esquina/i }));
+    rerender(<CrearBano ubicacion={UBICACION} banos={null} onVolver={() => {}} />);
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+
+    expect(screen.getByRole('button', { name: /oxxo esquina/i })).toBeInTheDocument();
+  });
+
+  it('si banos llega mientras escribo en el formulario (sin cercanos al abrir), el formulario no se reemplaza', async () => {
+    const usuario = userEvent.setup();
+    const { rerender } = render(<CrearBano ubicacion={UBICACION} banos={[]} onVolver={() => {}} />);
+
+    await usuario.type(screen.getByLabelText(/^nombre$/i), 'Café');
+    rerender(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40]} onVolver={() => {}} />);
+
+    expect(screen.getByLabelText(/^nombre$/i)).toHaveValue('Café');
+  });
+
+  it('Volver en el formulario tras "Ninguno es este" regresa a la lista, no cierra el flujo', async () => {
+    const usuario = userEvent.setup();
+    const onVolver = vi.fn();
+    render(<CrearBano ubicacion={UBICACION} banos={[BANO_A_40]} onVolver={onVolver} />);
+
+    await usuario.click(screen.getByRole('button', { name: /ninguno es este, crear nuevo/i }));
+    expect(screen.getByText(/gracias por revisar/i)).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: /volver/i }));
+
+    expect(onVolver).not.toHaveBeenCalled();
+    expect(screen.getByRole('list', { name: /baños cerca de ti/i })).toBeInTheDocument();
+  });
+
+  it('sin ningún baño a <=200m habilita el formulario', () => {
     render(<CrearBano ubicacion={UBICACION} banos={[BANO_LEJOS]} onVolver={() => {}} />);
 
     expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
@@ -64,8 +154,8 @@ describe('CrearBano', () => {
     expect(screen.getByLabelText(/tipo de lugar/i)).toBeInTheDocument();
   });
 
-  it('sin baños cargados (banos vacío o null) también habilita el formulario', () => {
-    render(<CrearBano ubicacion={UBICACION} banos={null} onVolver={() => {}} />);
+  it('sin baños cargados (banos vacío) también habilita el formulario', () => {
+    render(<CrearBano ubicacion={UBICACION} banos={[]} onVolver={() => {}} />);
     expect(screen.getByLabelText(/^nombre$/i)).toBeInTheDocument();
   });
 

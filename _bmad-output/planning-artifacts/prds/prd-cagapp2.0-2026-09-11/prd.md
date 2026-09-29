@@ -2,7 +2,7 @@
 title: PRD: CagApp 2.0
 status: final
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-29
 ---
 
 # PRD: CagApp 2.0
@@ -62,6 +62,9 @@ Ambos perfiles se necesitan mutuamente: sin reseñadores entusiastas no hay sufi
 - **Buscador con Urgencia** — Perfil de uso: un Usuario que consulta CagApp para encontrar un Baño cercano y confiable ante una necesidad real.
 - **Reseñador Entusiasta** — Perfil de uso: un Usuario que hace Check-in y Califica por gusto de participar, sin urgencia necesaria.
 - **Cuenta** — Registro obligatorio de un Usuario en CagApp (correo/contraseña o proveedor social), con un nombre para mostrar. Es obligatoria desde el arranque: no hay navegación sin Cuenta.
+- **Usuario Autorizado** — Usuario cuya Cuenta fue aprobada manualmente por el fundador durante la Fase Friends and Family (FR-14). Solo un Usuario Autorizado accede al Mapa y al resto de la app.
+- **Fase Friends and Family** — Etapa actual de lanzamiento controlado: el registro está abierto, pero el acceso requiere autorización manual, y los Usuarios pueden enviar Sugerencias al equipo (FR-13, FR-14).
+- **Sugerencia** — Mensaje privado que un Usuario envía al equipo de CagApp para reportar un bug o proponer una mejora. No es una reseña de un Baño, nunca es pública y no se relaciona con ninguna Calificación.
 - **MVP / v1** — El alcance de la primera versión lanzable de CagApp, definido en §6.
 
 ## 4. Features
@@ -139,10 +142,13 @@ Un Usuario con Cuenta puede ver, en el Detalle de un Baño, una lista de calific
 **Requisitos Funcionales:**
 
 #### FR-7: Buscar antes de crear
-Un Usuario con Cuenta que quiere agregar un Baño primero debe buscar/ver si ya existe uno igual o muy cercano, antes de que el sistema le permita crear uno nuevo. Realiza UJ-2.
+Un Usuario con Cuenta que quiere agregar un Baño primero ve los Baños existentes muy cercanos y confirma que el suyo no está entre ellos, antes de que el sistema le permita crear uno nuevo. Realiza UJ-2.
 
 **Consecuencias (verificables):**
-- El sistema sugiere Baños existentes dentro de un radio de **1.5 km** de la ubicación actual antes de habilitar el formulario de creación `[confirmado por skr]`.
+- Al iniciar "Agregar Baño", el sistema muestra una **lista** de todos los Baños existentes dentro de un radio de **200 m** de la ubicación actual, ordenada por cercanía (nombre, tipo de lugar y distancia de cada uno) `[CAMBIO 2026-09-29 — confirmado por skr; reemplaza la regla anterior de 1.5 km, que bloqueaba la creación si existía cualquier Baño en ese radio y en la práctica permitía un solo Baño por zona]`.
+- Tocar un Baño de la lista abre su Detalle (FR-6): así el Usuario confirma que ya existía y puede hacer check-in ahí.
+- La lista ofrece una acción explícita **"Ninguno es este, crear nuevo"** que habilita el formulario de creación (FR-8). La creación nunca se habilita sin mostrar antes la lista.
+- Si no hay ningún Baño dentro de 200 m, el sistema lo indica y pasa directo al formulario.
 
 #### FR-8: Crear un baño nuevo
 Un Usuario con Cuenta puede registrar un Baño nuevo con nombre, ubicación (tomada del dispositivo) y tipo de lugar, cuando confirmó que no existía. Realiza UJ-2.
@@ -175,12 +181,39 @@ Un Usuario solo puede asignar una Calificación (1 a 5 estrellas) a un Baño inm
 **NFRs específicos de esta función:**
 - La verificación de ubicación del check-in no debe exponer públicamente la ubicación exacta del Usuario a otros usuarios — solo confirma internamente que el check-in es válido `[confirmado por skr]`.
 
+### 4.5 Fase Friends and Family
+
+**Descripción:** Mecanismos para operar CagApp en un lanzamiento controlado: solo entran las personas que el fundador aprueba, y ellas tienen una vía directa para reportar bugs y proponer mejoras. `[NUEVO 2026-09-29 — FR-14 documenta una funcionalidad ya construida (spec-acceso-friends-and-family y spec-gate-autorizado-backend); FR-13 es nueva]`
+
+**Requisitos Funcionales:**
+
+#### FR-13: Enviar una sugerencia o reportar un bug
+Un Usuario Autorizado puede enviarle al equipo de CagApp una Sugerencia desde un botón con icono de globo de diálogo (💬) que siempre está visible en la barra superior, junto al Perfil. El botón abre una pantalla dedicada. `[confirmado por skr]`
+
+**Consecuencias (verificables):**
+- La pantalla captura un **tipo** (bug o sugerencia) y un **texto libre** obligatorio. Al enviar se muestra una confirmación con el tono de la marca.
+- La Sugerencia se guarda automáticamente con el Usuario que la envió y la fecha. El Usuario no tiene que escribir esos datos.
+- Las Sugerencias nunca se muestran a otros Usuarios. El fundador las lee directamente desde la base de datos; en esta versión no hay panel de administración.
+- El botón y la pantalla existen solo mientras la Fase Friends and Family esté activa. El fundador puede apagarlos sin rediseñar la app `[SUPUESTO: el mecanismo exacto del switch (bandera de configuración o de base de datos) se define en arquitectura]`.
+- Si el envío falla, el texto escrito no se pierde y el Usuario puede reintentar.
+
+**Notas:** Capturas de pantalla, adjuntos, seguimiento de estado y respuesta al Usuario quedan fuera por ahora. skr indicó que la funcionalidad puede crecer después.
+
+#### FR-14: Acceso solo para Usuarios Autorizados
+El registro de Cuenta sigue abierto a cualquiera, pero solo un Usuario Autorizado puede usar la app. El fundador autoriza cada Cuenta manualmente. `[confirmado por skr — ya implementado]`
+
+**Consecuencias (verificables):**
+- Una Cuenta nueva nace sin autorizar. Las Cuentas que existían antes de la Fase Friends and Family quedaron autorizadas.
+- Un Usuario no autorizado que inicia sesión ve una pantalla de espera con el tono de la marca (intriga, no rechazo) en vez del Mapa. La sesión se cierra sola a los 30 segundos y regresa a Login.
+- La restricción también se aplica en el servidor: un Usuario no autorizado no puede consultar ni crear Baños, Check-ins ni Calificaciones llamando directamente a la API.
+- No hay panel de administración: la autorización se hace a mano en la base de datos.
+
 ## 5. No-Objetivos (Explícitos)
 
 - CagApp no es un directorio de reseñas generales de negocios — solo califica el Baño, no el servicio, la comida ni el precio del lugar.
 - No hay cuenta de negocio ni forma de que un negocio reclame o administre su Baño en v1.
 - No hay moderación de calificaciones de mala fe más allá de la barrera del check-in (sin reportes, sin baneos, sin revisión manual) en v1 — se acepta el riesgo de que alguien físicamente presente deje una calificación de mala fe (ej. contra un competidor), apostando a que el requisito de check-in ya filtra la mayoría del abuso remoto; SM-C1 vigila si esto se vuelve un problema real.
-- No hay comentarios de texto ni fotos en v1 — solo la estrella.
+- No hay comentarios de texto ni fotos en v1 — solo la estrella. *(Esto aplica a las reseñas de Baños. Las Sugerencias de FR-13 son retroalimentación privada sobre el producto, dirigida al equipo, y no contradicen esta regla.)*
 - No hay selector de idioma ni versión en inglés en v1 — lanza únicamente en español.
 - No hay mecánicas de gamificación (insignias, rachas, rankings tipo "alcalde") en el MVP — confirmado como candidato fuerte para v1.1, no para el lanzamiento inicial.
 - No hay apps nativas de iOS/Android — solo web responsivo `[confirmado por skr]`.
@@ -194,7 +227,8 @@ Un Usuario solo puede asignar una Calificación (1 a 5 estrellas) a un Baño inm
 - Mapa con baños cercanos
 - Vista de lista ordenada por cercanía
 - Detalle de un baño con calificación promedio y lista pública de calificaciones de otros usuarios (nombre para mostrar + estrellas + fecha)
-- Crear un baño nuevo (con búsqueda previa para evitar duplicados)
+- Crear un baño nuevo, con una lista previa de baños a menos de 200 m para evitar duplicados
+- Fase friends and family: acceso con autorización manual (FR-14) y buzón de sugerencias y bugs (FR-13)
 - Check-in con verificación de ubicación
 - Calificación general de 1 a 5 estrellas
 - Tono de marca divertido y con emojis en toda la experiencia
@@ -230,6 +264,7 @@ Un Usuario solo puede asignar una Calificación (1 a 5 estrellas) a un Baño inm
 - §4.1 FR-11 — Alcance mínimo del Perfil (sin edición, foto o bio más allá de la lista de actividad).
 - §4.4 FR-9 — Mecanismo exacto de reintento/tolerancia cuando el GPS no logra precisión suficiente para el check-in queda para arquitectura.
 - §4.2 FR-12 — Cantidad de entradas, orden y paginación de la lista de calificaciones de otros usuarios no están definidos.
+- §4.5 FR-13 — Mecanismo del switch que apaga las Sugerencias al terminar la Fase Friends and Family queda para arquitectura.
 - §Constraints and Guardrails / Seguridad — Detalle técnico de implementación de autenticación queda para arquitectura.
 
 ---
@@ -242,12 +277,16 @@ CagApp usa un tono divertido, ligero y "chusco" en toda la copy de producto (men
 
 Superficies de nivel superior en el MVP:
 - **Registro / Inicio de sesión** — puerta de entrada obligatoria; correo/contraseña y proveedores sociales. Ninguna otra pantalla es accesible sin pasar por aquí primero.
+- **Espera** — para un Usuario no autorizado se muestra en lugar del Mapa (FR-14).
 - **Mapa** (pantalla de inicio tras autenticarse) — baños cercanos, permiso de ubicación.
 - **Lista** — misma información que el mapa, vista alternativa ordenada por cercanía.
 - **Detalle de Baño** — nombre, tipo, calificación promedio, botón de check-in si el usuario está en rango, y la lista pública de calificaciones de otros usuarios (FR-12).
-- **Crear Baño** — formulario, precedido por la búsqueda de duplicados (FR-7).
+- **Crear Baño** — formulario, precedido por la lista de baños cercanos a menos de 200 m (FR-7).
 - **Check-in / Calificar** — flujo corto post-verificación de ubicación.
 - **Perfil** — actividad propia del Usuario (baños calificados). Ver FR-11.
+- **Sugerencias** — pantalla para enviar un bug o una sugerencia (FR-13). Solo existe durante la Fase Friends and Family.
+
+**Navegación persistente** `[NUEVO 2026-09-29]`: Mapa y Lista tienen una **barra superior** con Perfil, Sugerencias y el cambio entre lista y mapa, y una **barra inferior** con "Agregar Baño". Ningún control de navegación se encima sobre los controles propios del mapa, como el zoom. "Agregar Baño" siempre está visible en cualquier tamaño de pantalla de celular (ver Platform). El detalle visual y de comportamiento vive en EXPERIENCE.md.
 
 ## Monetización
 
@@ -261,7 +300,7 @@ No hay monetización activa en el MVP — CagApp v1 es gratuita, sin anuncios ni
 
 ## Platform
 
-Web responsivo únicamente — optimizado para navegador móvil, ya que el caso de uso principal (encontrar/calificar un baño) ocurre mientras el usuario está en movimiento. Sin apps nativas de iOS/Android en v1 `[confirmado por skr]`. Requiere acceso a geolocalización del navegador para el mapa, la búsqueda por cercanía y la verificación de check-in.
+Web responsivo únicamente — optimizado para navegador móvil, ya que el caso de uso principal (encontrar/calificar un baño) ocurre mientras el usuario está en movimiento. Sin apps nativas de iOS/Android en v1 `[confirmado por skr]`. Requiere acceso a geolocalización del navegador para el mapa, la búsqueda por cercanía y la verificación de check-in. Todas las acciones principales, sobre todo "Agregar Baño", deben verse y poder tocarse sin hacer scroll en pantallas de celular comunes, incluidas las más chicas (≈360×640) `[NUEVO 2026-09-29 — bug reportado por skr: en celular el botón de agregar baño no aparecía]`.
 
 ## Constraints and Guardrails
 
