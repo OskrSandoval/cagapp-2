@@ -2,7 +2,7 @@
 title: "DESIGN.md: CagApp 2.0"
 status: final
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-29
 sources:
   - ../../prds/prd-cagapp2.0-2026-09-11/prd.md
   - ../../briefs/brief-cagapp2.0-2026-09-10/brief.md
@@ -209,16 +209,17 @@ Escala: `4 / 8 / 12 / 16 / 20 / 24 px`. `gutter` (20px) es el margen lateral de 
 
 Estructura: **una sola columna siempre**, sin excepción — mobile-first responsivo, pensado para pantalla de teléfono. Un único CTA primario de ancho completo por pantalla (botón de login, botón de check-in, botón de confirmar calificación), nunca CTAs primarios compitiendo entre sí.
 
-Navegación: **sin barra de navegación inferior** — decisión explícita registrada en el memlog. En su lugar:
-- El **Mapa** (pantalla de inicio post-login) lleva una barra superior flotante *sobre* el mapa: ícono de Perfil (círculo) arriba a la izquierda, botón-pill "Ver lista" arriba a la derecha para alternar Mapa/Lista.
-- El **FAB Agregar Baño** flota centrado en la parte inferior, sobre el Mapa/Lista, según decisión del memlog.
-- El **Detalle de Baño** usa navegación por back-button (←) en una barra superior simple, no overlay.
+Navegación `[CAMBIO 2026-09-29 — reemplaza los controles flotantes sobre el mapa; ver EXPERIENCE.md § Information Architecture]`: Mapa y Lista quedan enmarcados por **dos barras sólidas**, con el contenido entre ellas. Nada flota sobre el mapa.
+- **Barra superior**: fondo `{colors.bg}`, borde inferior `1px {colors.border}`, padding horizontal `gutter`. Ícono de Perfil a la izquierda, Botón de Sugerencias 💬 junto a él (solo en Fase Friends and Family) y Toggle Mapa/Lista a la derecha.
+- **Barra inferior**: fondo `{colors.bg}`, borde superior `1px {colors.border}`, padding `12px gutter` más `env(safe-area-inset-bottom)`. Contiene **solo** el Botón Agregar Baño. Es una barra de acción, **no** una tab bar.
+- El layout usa `100dvh` para que la barra inferior nunca quede debajo de la barra del navegador móvil.
+- El **Detalle de Baño** (y Crear Baño, Perfil, Sugerencias) usa navegación por back-button (←) en una barra superior simple, sin las dos barras.
 
 `[GAP]` Ningún artefacto de esta sesión especifica comportamiento en viewport de tablet/escritorio más allá del término "responsivo" del brief/PRD — los tres mockups aprobados son exclusivamente marco de teléfono. Hasta que se decida lo contrario, asumir que el layout de una sola columna se mantiene centrado con el mismo ancho de contenido mobile en viewports más anchos, sin un layout de escritorio dedicado.
 
 ## Elevation & Depth
 
-CagApp usa sombra de forma muy selectiva: solo para elementos que **flotan sobre otro contenido**, nunca para dar jerarquía a superficies estáticas. El Mapa es la superficie con más elevación real: el ícono de Perfil, el toggle Mapa/Lista y el FAB llevan una sombra suave (`0 3px 10px rgba(0,0,0,.15)` para los botones-ícono flotantes; `0 10px 22px rgba(213,60,25,.45)` — sombra teñida del propio `primary` — para el FAB) porque literalmente están superpuestos sobre el mapa.
+CagApp usa sombra de forma muy selectiva: solo para elementos que **flotan sobre otro contenido**, nunca para dar jerarquía a superficies estáticas. `[CAMBIO 2026-09-29]` Con las barras sólidas, los controles de navegación ya no flotan sobre el mapa y **no llevan sombra** (las barras se separan del mapa con su borde de `1px {colors.border}`). El Botón Agregar Baño conserva su sombra teñida de `primary` (`0 6px 14px rgba(213,60,25,.35)`, más contenida) como único acento de elevación, por ser la acción principal de la pantalla.
 
 Las tarjetas de contenido estático (tarjeta hero del detalle, tarjeta de calificar, tabs de login) **no llevan sombra** — se distinguen del fondo únicamente con `{colors.surface}` + `1px solid {colors.border}`. La jerarquía viene de tono y tipografía, no de sombra.
 
@@ -245,9 +246,10 @@ Nombres de componente abajo son **canónicos** — EXPERIENCE.md § Component Pa
 - **Campo de texto** (`mockups/key-login.html`) — Fondo `{colors.surface}`, borde `{colors.border}`, `{rounded.sm}`, placeholder en `{colors.muted}`. Etiqueta encima en `{typography.label}`. Requisito de accesibilidad (ver Do's and Don'ts): cada campo lleva `id` en el input asociado a `for` en su `<label>`, y el campo de contraseña en Login/Registro usa `type="password"` — la especificación visual no cambia, esto documenta el requisito de implementación.
 - **Botón primario (ancho completo)** (`mockups/key-login.html`, `mockups/key-detalle-checkin.html`) — Relleno `{colors.primary}`, texto `{colors.primary-ink}` en `{typography.button}`, `{rounded.md}`. Copy siempre "verbo + emoji" — ver convención completa en Typography (`{typography.button}`), no repetida aquí.
 - **Botón social (Google/Facebook)** (`mockups/key-login.html`) — Fondo `{colors.bg}`, borde `{colors.border}`, ícono + label centrados, `{typography.label}`, jerarquía visual menor que el botón primario.
-- **Ícono de Perfil** (`mockups/key-mapa.html`) — Círculo `{colors.bg}` + borde + sombra suave, 42px, posición fija arriba-izquierda sobre el mapa. Al no llevar texto visible, requiere `aria-label="Perfil"` (accesibilidad — nombre accesible de un control solo-ícono).
-- **Toggle Mapa/Lista** (`mockups/key-mapa.html`) — Pill `{colors.bg}` + borde + sombra suave, ícono "☰" en `{colors.primary}` + label en `{typography.label}`, arriba-derecha sobre el mapa. Token de frontmatter: `toggle-pill`.
-- **FAB Agregar Baño** (`mockups/key-mapa.html`) — Pill `{colors.primary}`/`{colors.primary-ink}`, sombra teñida de `primary`, centrado abajo sobre Mapa/Lista. Único punto de entrada visual para registrar un baño nuevo.
+- **Ícono de Perfil** (`mockups/key-mapa.html`) — Círculo `{colors.bg}` + borde, 42px, a la izquierda de la Barra superior. Al no llevar texto visible, requiere `aria-label="Perfil"` (accesibilidad — nombre accesible de un control solo-ícono).
+- **Botón de Sugerencias** — Mismo tratamiento que el Ícono de Perfil (círculo `{colors.bg}` + borde, 42px) con 💬 al centro, a la derecha del Ícono de Perfil en la Barra superior. Requiere `aria-label="Sugerencias"`. Solo existe durante la Fase Friends and Family.
+- **Toggle Mapa/Lista** (`mockups/key-mapa.html`) — Pill `{colors.bg}` + borde, ícono "☰" en `{colors.primary}` + label en `{typography.label}`, a la derecha de la Barra superior. Token de frontmatter: `toggle-pill`.
+- **Botón Agregar Baño** (antes "FAB Agregar Baño", `mockups/key-mapa.html`) — Pill `{colors.primary}`/`{colors.primary-ink}`, sombra teñida de `primary`, centrado dentro de la Barra inferior, alto ≥48px y ancho hasta ~320px. Único punto de entrada visual para registrar un baño nuevo. Token de frontmatter: `fab` (se conserva el nombre del token).
 - **Pin de mapa** (`mockups/key-mapa.html`) — Badge pill de color por nivel de calificación (`success` alto / `primary` medio / `warning` bajo) mostrando "🚽 X.X★", con un pequeño vástago (stem) hacia el punto exacto, del mismo color que el badge. El badge visual es pequeño (~19px de alto); el área táctil real debe extenderse más allá del pill visible hasta un mínimo de **24×24px** (padding invisible / wrapper clicable), especialmente en Mapa, donde varios pines pueden quedar muy cerca entre sí.
 - **Tarjeta hero de Detalle** (`mockups/key-detalle-checkin.html`) — `{colors.surface}` + borde, `{rounded.lg}`. Encabezado: ícono-círculo `{colors.primary}` + nombre (`{typography.heading}`) + subtítulo (`{typography.meta}`). Debajo: fila de estrellas estáticas + etiqueta de calificación, línea de distancia, chip de rango (si aplica), CTA primario de check-in. El botón de regreso (←) de esta pantalla debe medir **~40–44px** (no 32px), a la par del Ícono de Perfil, y llevar `aria-label="Volver"` al ser un control solo-ícono.
 - **Etiqueta de calificación** (`mockups/key-detalle-checkin.html`) — Pill `{colors.success-surface}`/`{colors.success}`, `{typography.label}`, copy tipo "4.5 ⭐ — ¡una joya!". La regla de qué sufijo cualitativo corresponde a cada banda de calificación vive en EXPERIENCE.md § Component Patterns (fila "Etiqueta de calificación"), atada a la misma lista de 5 captions de abajo.
@@ -263,7 +265,7 @@ Nombres de componente abajo son **canónicos** — EXPERIENCE.md § Component Pa
   5. 🤩 Limpio, amplio y hasta huele bien
 - **Lista "Lo que dice la gente"** (`mockups/key-detalle-checkin.html`, Estado A) — Sección de la Tarjeta hero de Detalle, debajo del chip de rango/CTA de check-in, separada por `section-gap`. Muestra las calificaciones recientes de otros usuarios sobre ese baño: por fila, nombre del usuario + su calificación en estrellas + fecha relativa ("hace 3 días"), con el nombre en `{typography.body}`/`{colors.text}` y la fecha relativa en `{typography.meta}`/`{colors.muted}` (el mismo rol tipográfico ya referenciado en Typography). Sin foto/avatar (no hay ese dato en el modelo v1). `[NOTA]` Esta es la lectura visual de un componente **confirmado como función real** (memlog, decisión final: las calificaciones de otros usuarios sí se muestran públicamente con su nombre) — no una pieza exploratoria del mockup. Ver EXPERIENCE.md § Component Patterns y § State Patterns para las reglas de comportamiento (orden, cantidad de filas, fuente del nombre) y el `[NOTE FOR PM]` sobre el campo de nombre a mostrar.
 
-`[GAP]` No hay mockup para: la fila de **Lista** (vista alternativa al mapa), el formulario de **Crear Baño** (**Paso de búsqueda de duplicados** y **Formulario de creación**), la pantalla de **Perfil** (actividad propia), el estado del botón de check-in **fuera de rango/deshabilitado**, ni el estado de **permiso de ubicación denegado** (este último ya señalado como pendiente de arquitectura en el propio PRD, §Open Questions). Al construir estas piezas, derivar del mismo lenguaje de tarjeta/pill/botón de arriba en vez de introducir un patrón nuevo, y confirmar visualmente antes de darlas por definitivas.
+`[GAP]` No hay mockup para: la fila de **Lista** (vista alternativa al mapa), el **Formulario de creación** de **Crear Baño**, la pantalla de **Perfil** (actividad propia), la **Lista de baños cercanos** de Crear Baño, la pantalla de **Sugerencias**, las **barras superior e inferior**, el estado del botón de check-in **fuera de rango/deshabilitado**, ni el estado de **permiso de ubicación denegado** (este último ya señalado como pendiente de arquitectura en el propio PRD, §Open Questions). Al construir estas piezas, derivar del mismo lenguaje de tarjeta/pill/botón de arriba en vez de introducir un patrón nuevo, y confirmar visualmente antes de darlas por definitivas.
 
 ## Do's and Don'ts
 
@@ -274,7 +276,7 @@ Nombres de componente abajo son **canónicos** — EXPERIENCE.md § Component Pa
 | Formas pill (`{rounded.full}`) para badges, toggles, FAB, tags | Esquinas totalmente cuadradas en elementos interactivos |
 | Sombra solo en elementos que flotan sobre otro contenido (mapa) | Sombra en tarjetas estáticas para simular jerarquía |
 | Copy chusca, informal, en primera persona con el usuario ("aquí nadie te juzga 👀") | Copy corporativa neutra o de tono solemne |
-| Navegación superior/overlay + FAB | Barra de navegación inferior tipo tab bar |
+| Barra superior (navegación) + barra inferior con una sola acción (Agregar Baño) | Convertir la barra inferior en tab bar o encimar controles sobre el mapa |
 | Una sola columna, un CTA primario por pantalla | Múltiples CTAs primarios compitiendo en la misma vista |
 | `warning` reservado para señales negativas reales (pin de baja calificación) | Usar `warning` decorativamente o como segundo acento |
 
