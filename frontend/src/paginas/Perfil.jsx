@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { obtenerMiActividad } from '../api/perfilesApi';
 import { estrellasEstaticas } from './calificacion';
+import EncabezadoOverlay from './EncabezadoOverlay';
 
 /**
  * Perfil (Story 4.1): overlay a pantalla completa dentro de `mapa-pantalla`,
@@ -45,12 +46,7 @@ export default function Perfil({ onVolver, onCerrarSesion }) {
 
   return (
     <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Perfil">
-      <div className="detalle-nav">
-        <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-          ←
-        </button>
-        <span>Perfil</span>
-      </div>
+      <EncabezadoOverlay titulo="Perfil" onVolver={onVolver} refVolver={volverRef} />
 
       <div className="detalle-contenido">
         {estado === 'cargando' && (

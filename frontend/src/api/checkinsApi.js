@@ -1,26 +1,7 @@
-import { supabase } from '../auth/supabaseClient';
+import { API_URL, leerCuerpoError, obtenerTokenActual } from './cliente';
 
 // AD-1: los check-in solo se registran a través de la API de Node, nunca
 // directo contra Supabase desde el frontend.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-async function obtenerTokenActual() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) {
-    throw new Error('No hay sesión activa — vuelve a iniciar sesión 🔐');
-  }
-  return token;
-}
-
-async function leerCuerpoError(respuesta) {
-  try {
-    const cuerpo = await respuesta.json();
-    return cuerpo?.error;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Hace check-in en un baño (Story 3.1), mismo patrón de POST autenticado que

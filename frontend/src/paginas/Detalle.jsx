@@ -5,6 +5,7 @@ import { formatearFechaRelativa } from './fechaRelativa';
 import { obtenerCalificacionesPublicas } from '../api/calificacionesApi';
 import FlujoCheckin from './FlujoCheckin';
 import SelectorCalificacion from './SelectorCalificacion';
+import EncabezadoOverlay from './EncabezadoOverlay';
 
 /**
  * Detalle de un baño (Story 2.3): overlay a pantalla completa dentro de
@@ -102,18 +103,7 @@ export default function Detalle({ bano, onVolver, onCalificado }) {
       aria-modal="true"
       aria-label={`Detalle de ${bano.nombre}`}
     >
-      <div className="detalle-nav">
-        <button
-          type="button"
-          ref={volverRef}
-          className="detalle-volver"
-          aria-label="Volver"
-          onClick={onVolver}
-        >
-          ←
-        </button>
-        <span>Detalle del baño</span>
-      </div>
+      <EncabezadoOverlay titulo="Detalle del baño" onVolver={onVolver} refVolver={volverRef} />
 
       <div className="detalle-contenido">
         <div className="detalle-hero">

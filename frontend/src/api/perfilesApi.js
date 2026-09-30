@@ -1,26 +1,7 @@
-import { supabase } from '../auth/supabaseClient';
+import { API_URL, leerCuerpoError, obtenerTokenActual } from './cliente';
 
 // AD-1: cualquier lectura/escritura de negocio (perfiles incluidos) pasa
 // por la API de Node, nunca directo contra Supabase desde el frontend.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-async function obtenerTokenActual() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) {
-    throw new Error('No hay sesión activa — vuelve a iniciar sesión 🔐');
-  }
-  return token;
-}
-
-async function leerCuerpoError(respuesta) {
-  try {
-    const cuerpo = await respuesta.json();
-    return cuerpo?.error;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Crea (o actualiza, si ya existe) el perfil del usuario autenticado.

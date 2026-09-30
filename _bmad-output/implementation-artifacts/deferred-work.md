@@ -70,3 +70,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-modo-demo-local.md`
   summary: "Nada verifica que los mensajes de `apiDemo.js` coincidan con los de `backend/src/controladores`, así que pueden desfasarse sin que falle ningún test."
   evidence: "Lo encontraron verification-gap y blind-hunter. Hoy coinciden (se revisó a mano). Se resolvería con un test que busque cada string de `MENSAJES` en el backend."
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-refactor-cliente-api-y-encabezado-overlay.md`
+  summary: "`crearPerfil`, `obtenerMiPerfil`, `obtenerMiActividad` (perfilesApi) y `obtenerEstadoSugerencias` no envuelven `fetch` en try/catch ni protegen `respuesta.json()`. Una falla de red le muestra al usuario `TypeError: Failed to fetch` en lugar del mensaje de marca que sí usan banos, checkins y calificaciones."
+  evidence: "Lo encontró el blind-hunter del refactor. Es anterior al refactor. Es el caso exacto del pitfall de AGENTS.md sobre llevar un patrón de resiliencia a los archivos hermanos."
+- source_spec: `_bmad-output/implementation-artifacts/spec-refactor-cliente-api-y-encabezado-overlay.md`
+  summary: "El wrapper de overlay (`detalle-pantalla` con role dialog, aria-label, ref de Volver y efecto de foco al abrir) sigue repetido en CrearBano (5 veces), Detalle, Perfil y Sugerencias. Un `PantallaOverlay` lo unificaría y evitaría que el aria-label y el título se desfasen."
+  evidence: "Lo encontró el blind-hunter del refactor; se dejó fuera del alcance a propósito."
