@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-30-2026 12:00
+last_updated: 09-30-2026 14:00
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -78,7 +78,7 @@ action_items:
       de una story anterior, evaluar backportear el patron al archivo original en
       el mismo Code Map en vez de solo documentar el contraste"
     owner: "proceso"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-24.md"
   - id: "epic-2-retro-item-3-antes-de-agregar-un-cuarto-o-quinto-over"
     epic: 2
@@ -135,7 +135,7 @@ action_items:
       null) y volver a correr al menos un revisor sobre el parche antes de cerrar
       la historia"
     owner: "proceso"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
   - id: "epic-5-retro-item-10-historias-de-ui-skr-prueba-en-su-celular"
     epic: 5
@@ -151,5 +151,5 @@ action_items:
       (hoy hay 5 copias) y el bloque detalle-nav repetido en CrearBano.jsx a un componente
       compartido"
     owner: "dev"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
