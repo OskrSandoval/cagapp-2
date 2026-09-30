@@ -1,15 +1,17 @@
 <!-- bmad:context -->
-<!-- Verified 2026-09-30 against c8c5e57. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+<!-- Verified 2026-09-30 against fe545e9. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
 ## CagApp 2.0
 
-App web mobile-first para encontrar y calificar baños en CDMX (fase friends and family en producción). React + Vite en `frontend/`, Node + Express en `backend/`, Supabase (auth y Postgres). Planeación BMAD en `_bmad-output/planning-artifacts/` (PRD, arquitectura, UX); el estado del trabajo vive en `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+App web mobile-first para encontrar y calificar baños en CDMX (fase friends and family; deploys de Vercel y Render pausados desde 2026-09-30, se trabaja solo en local). React + Vite en `frontend/`, Node + Express en `backend/`, Supabase (auth y Postgres). Planeación BMAD en `_bmad-output/planning-artifacts/` (PRD, arquitectura, UX); el estado del trabajo vive en `_bmad-output/implementation-artifacts/sprint-status.yaml`.
 
 ## Policy
 
 - Código siempre en rama propia + PR con merge a `main`; nunca push de código directo a `main`. Solo cambios de tracking y docs dentro de `_bmad-output/` pueden ir directo a `main`, y solo con aprobación de skr.
 - Nunca ejecutes SQL ni migraciones contra Supabase, ni uses las llaves de los `.env` para escribir datos: la única base es producción. Escribe la migración numerada en `supabase/sql/` y pide a skr que la corra en el SQL Editor.
 - Nunca commitees `frontend/.env` ni `backend/.env`; el único env commiteado es `frontend/.env.demo`, sin secretos.
+- No hay deploy ni preview de PR mientras Vercel y Render estén pausados: nunca ofrezcas una URL de preview; verifica en local.
+- `npm run dev` local usa el Supabase de producción: no crees datos de prueba con él; para probar flujos usa `npm run dev:demo`.
 - Todo en español: vocabulario de dominio en código (AD-6), mensajes, docs y conversación.
 - Todo texto que ve el usuario va en el tono de marca "chusco" (divertido, emojis en momentos clave), nunca neutro-corporativo.
 

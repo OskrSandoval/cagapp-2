@@ -6,7 +6,7 @@ App para descubrir, agregar y calificar baños públicos cerca de ti, enfocada e
 
 ## Estado del proyecto
 
-Roadmap completo: **4 épicas, 10 historias**, todas implementadas, revisadas (3 capas: blind-hunter, edge-case-hunter, verification-gap) y probadas en el navegador contra Supabase real.
+Roadmap completo: **5 épicas, 13 historias**, todas implementadas, revisadas (3 capas: blind-hunter, edge-case-hunter, verification-gap) y probadas en el navegador contra Supabase real.
 
 | Épica | Contenido |
 |---|---|
@@ -14,6 +14,9 @@ Roadmap completo: **4 épicas, 10 historias**, todas implementadas, revisadas (3
 | 2 — Baños: Descubrir y Agregar | Mapa, vista de lista, detalle de un baño, agregar baño con búsqueda de duplicados |
 | 3 — Check-in y Calificación | Check-in verificado por ubicación (150m), calificar de 1 a 5 estrellas |
 | 4 — Actividad y Comunidad | Perfil (actividad propia), "Lo que dice la gente" (calificaciones públicas) |
+| 5 — Pulido para Friends and Family | Lista de baños cercanos (≤200m) antes de crear, barras de navegación responsivas, buzón de sugerencias y bugs |
+
+**Despliegue:** Vercel (frontend) y Render (backend) están **pausados** desde el 2026-09-30; el trabajo es solo local. Supabase sigue activo y es la base de producción, así que `npm run dev` escribe datos reales. Para probar sin tocarla usa `npm run dev:demo` (ver `frontend/DEMO.md`).
 
 El detalle completo de cada historia, sus criterios de aceptación y las decisiones tomadas está en `_bmad-output/implementation-artifacts/spec-*.md`; las retrospectivas por épica están en `_bmad-output/implementation-artifacts/epic-*-retro-*.md`; el trabajo diferido a propósito está en `_bmad-output/implementation-artifacts/deferred-work.md`.
 
@@ -29,7 +32,7 @@ El detalle completo de cada historia, sus criterios de aceptación y las decisio
 ```
 backend/     API de Node/Express (rutas, controladores, servicios, datos)
 frontend/    App de React/Vite
-supabase/sql/  Migraciones SQL, en orden (001_perfiles → 004_calificaciones)
+supabase/sql/  Migraciones SQL, en orden numérico (001 al último)
 _bmad-output/  Documentos de planeación e implementación (specs, retros, epics, PRD, arquitectura, UX)
 ```
 
