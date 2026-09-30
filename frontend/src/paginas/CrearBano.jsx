@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { crearBano } from '../api/banosApi';
 import Detalle from './Detalle';
 import { formatearDistancia } from './distancia';
+import EncabezadoOverlay from './EncabezadoOverlay';
 
 // AD-4: reutiliza `distancia_metros` que ya trae `GET /banos` (calculado con
 // el único Haversine del backend) — nunca reimplementa la fórmula aquí.
@@ -84,12 +85,7 @@ export default function CrearBano({
   if (pantalla === 'bloqueo') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
-        <div className="detalle-nav">
-          <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-            ←
-          </button>
-          <span>Agregar baño</span>
-        </div>
+        <EncabezadoOverlay titulo="Agregar baño" onVolver={onVolver} refVolver={volverRef} />
         <div className="detalle-contenido">
           <div className="surface-tarjeta" role="alert">
             <p className="surface-titulo">Sin tu ubicación no podemos evitar duplicados 📍</p>
@@ -106,12 +102,7 @@ export default function CrearBano({
   if (pantalla === 'error') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
-        <div className="detalle-nav">
-          <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-            ←
-          </button>
-          <span>Agregar baño</span>
-        </div>
+        <EncabezadoOverlay titulo="Agregar baño" onVolver={onVolver} refVolver={volverRef} />
         <div className="detalle-contenido">
           <div className="surface-tarjeta" role="alert">
             <p className="surface-titulo">{errorBanos}</p>
@@ -128,12 +119,7 @@ export default function CrearBano({
   if (pantalla === 'buscando') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
-        <div className="detalle-nav">
-          <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-            ←
-          </button>
-          <span>Agregar baño</span>
-        </div>
+        <EncabezadoOverlay titulo="Agregar baño" onVolver={onVolver} refVolver={volverRef} />
         <div className="detalle-contenido">
           <p className="surface-titulo crear-bano-intro" role="status">
             Buscando baños cerca 🔍…
@@ -150,12 +136,7 @@ export default function CrearBano({
   if (pantalla === 'lista') {
     return (
       <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
-        <div className="detalle-nav">
-          <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-            ←
-          </button>
-          <span>Agregar baño</span>
-        </div>
+        <EncabezadoOverlay titulo="Agregar baño" onVolver={onVolver} refVolver={volverRef} />
         <div className="detalle-contenido">
           <p className="surface-titulo crear-bano-intro">
             ¿Es alguno de estos? 👀 Revisa antes de agregarlo.
@@ -239,12 +220,7 @@ export default function CrearBano({
 
   return (
     <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Agregar baño">
-      <div className="detalle-nav">
-        <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={cercanos.length > 0 ? () => setQuiereCrear(false) : onVolver}>
-          ←
-        </button>
-        <span>Agregar baño</span>
-      </div>
+      <EncabezadoOverlay titulo="Agregar baño" onVolver={cercanos.length > 0 ? () => setQuiereCrear(false) : onVolver} refVolver={volverRef} />
 
       <div className="detalle-contenido">
         <p className="surface-titulo crear-bano-intro">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { enviarSugerencia } from '../api/sugerenciasApi';
+import EncabezadoOverlay from './EncabezadoOverlay';
 
 export const MAX_CARACTERES_SUGERENCIA = 2000;
 
@@ -63,12 +64,7 @@ export default function Sugerencias({ onVolver, onBuzonCerrado }) {
 
   return (
     <div className="detalle-pantalla" role="dialog" aria-modal="true" aria-label="Sugerencias">
-      <div className="detalle-nav">
-        <button type="button" ref={volverRef} className="detalle-volver" aria-label="Volver" onClick={onVolver}>
-          ←
-        </button>
-        <span>Sugerencias</span>
-      </div>
+      <EncabezadoOverlay titulo="Sugerencias" onVolver={onVolver} refVolver={volverRef} />
 
       <div className="detalle-contenido">
         {buzonCerrado ? (

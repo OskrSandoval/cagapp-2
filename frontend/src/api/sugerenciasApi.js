@@ -1,26 +1,7 @@
-import { supabase } from '../auth/supabaseClient';
+import { API_URL, leerCuerpoError, obtenerTokenActual } from './cliente';
 
 // AD-1: las sugerencias solo pasan por la API de Node, nunca directo contra
 // Supabase desde el frontend.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-async function obtenerTokenActual() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) {
-    throw new Error('No hay sesión activa — vuelve a iniciar sesión 🔐');
-  }
-  return token;
-}
-
-async function leerCuerpoError(respuesta) {
-  try {
-    const cuerpo = await respuesta.json();
-    return cuerpo?.error;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Manda un bug o una sugerencia. El usuario y la fecha los pone
