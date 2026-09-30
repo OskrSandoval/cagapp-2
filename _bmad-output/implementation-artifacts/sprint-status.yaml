@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:30
-last_updated: 09-29-2026 17:00
+last_updated: 09-30-2026 12:00
 project: CagApp 2.0
 project_key: NOKEY
 tracking_system: file-system
@@ -143,7 +143,7 @@ action_items:
       cuenta de prueba o un bypass de auth local para que el agente pueda ejecutar
       la app y verificar visualmente"
     owner: "skr"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-5-retro-2026-09-29.md"
   - id: "epic-5-retro-item-11-extraer-obtenertokenactual-leercuerpoerr"
     epic: 5
