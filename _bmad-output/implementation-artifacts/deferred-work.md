@@ -63,3 +63,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-enviar-sugerencias-y-reportar-bugs.md`
   summary: "`POST /sugerencias` no tiene rate limit por usuario: una cuenta autorizada puede llenar la tabla que skr lee a mano."
   evidence: "Lo reportaron el blind-hunter y el edge-case-hunter de la Story 5.3. Es el mismo hueco ya diferido para todos los endpoints autenticados (spec 3.1). Es medium porque el buzón se lee a mano, pero en la fase friends and family el riesgo es bajo."
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-modo-demo-local.md`
+  summary: "El modo demo no puede simular fallas de GPS (permiso negado o timeout), un perfil sin autorizar o inexistente, ni errores de red o 401. Por eso el modo zona, EnEspera, CompletarPerfil y la rama de error de FlujoCheckin no se pueden verificar visualmente."
+  evidence: "Lo encontró el blind-hunter de la revisión del modo demo. Se resolvería con comandos nuevos en `cagappDemo` (`fallarGps`, `perfil({ autorizado })`, `fallarSiguiente(ruta, { tipo })`)."
+- source_spec: `_bmad-output/implementation-artifacts/spec-modo-demo-local.md`
+  summary: "Nada verifica que los mensajes de `apiDemo.js` coincidan con los de `backend/src/controladores`, así que pueden desfasarse sin que falle ningún test."
+  evidence: "Lo encontraron verification-gap y blind-hunter. Hoy coinciden (se revisó a mano). Se resolvería con un test que busque cada string de `MENSAJES` en el backend."
