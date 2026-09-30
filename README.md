@@ -40,7 +40,7 @@ _bmad-output/  Documentos de planeación e implementación (specs, retros, epics
 1. Entra a [supabase.com/dashboard](https://supabase.com/dashboard) y crea un proyecto nuevo.
 2. Ve a **Authentication → Providers → Email** y desactiva **"Confirm email"** (para que el registro autentique de inmediato).
 3. Ve a **Project Settings → API** y copia `Project URL`, `anon public key` y `service_role key`.
-4. En el **SQL Editor**, corre los scripts de `supabase/sql/` **en orden**: `001_perfiles.sql`, `002_banos.sql`, `003_checkins.sql`, `004_calificaciones.sql`.
+4. En el **SQL Editor**, corre **todos** los scripts de `supabase/sql/` en orden numérico (`001_…`, `002_…`, y así hasta el último).
 
 ### 2. Variables de entorno
 
